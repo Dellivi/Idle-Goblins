@@ -1,0 +1,624 @@
+fileFormatVersion: 2
+guid: 9dc8729284d93e8498e6a3835a762d6f
+TextureImporter:
+  internalIDToNameTable:
+  - first:
+      213: -6742133601160835685
+    second: Produce_Atlas_0
+  - first:
+      213: -7436486295877979280
+    second: Produce_Atlas_1
+  - first:
+      213: 6000604020278857955
+    second: Produce_Atlas_2
+  - first:
+      213: 7404657671376587954
+    second: Produce_Atlas_3
+  - first:
+      213: -8328577021075267520
+    second: Produce_Atlas_4
+  - first:
+      213: 2281534229741881631
+    second: Produce_Atlas_5
+  - first:
+      213: 1566291869560505005
+    second: Produce_Atlas_6
+  - first:
+      213: 8352799742520913152
+    second: Produce_Atlas_7
+  - first:
+      213: 3745468998254976690
+    second: Produce_Atlas_8
+  - first:
+      213: 8256749861861468876
+    second: Produce_Atlas_9
+  - first:
+      213: 7405855358841943094
+    second: Produce_Atlas_10
+  - first:
+      213: -4430155199568115614
+    second: Produce_Atlas_11
+  - first:
+      213: 8326119966323396643
+    second: Produce_Atlas_12
+  - first:
+      213: 4652499093753853040
+    second: Produce_Atlas_13
+  - first:
+      213: 190885700201777987
+    second: Produce_Atlas_14
+  - first:
+      213: -1271461355403992209
+    second: Produce_Atlas_15
+  - first:
+      213: -5992221585487844311
+    second: Produce_Atlas_16
+  - first:
+      213: -7980919295027981880
+    second: Produce_Atlas_17
+  - first:
+      213: 7410216664575184862
+    second: Produce_Atlas_18
+  externalObjects: {}
+  serializedVersion: 13
+  mipmaps:
+    mipMapMode: 0
+    enableMipMap: 0
+    sRGBTexture: 1
+    linearTexture: 0
+    fadeOut: 0
+    borderMipMap: 0
+    mipMapsPreserveCoverage: 0
+    alphaTestReferenceValue: 0.5
+    mipMapFadeDistanceStart: 1
+    mipMapFadeDistanceEnd: 3
+  bumpmap:
+    convertToNormalMap: 0
+    externalNormalMap: 0
+    heightScale: 0.25
+    normalMapFilter: 0
+    flipGreenChannel: 0
+  isReadable: 0
+  streamingMipmaps: 0
+  streamingMipmapsPriority: 0
+  vTOnly: 0
+  ignoreMipmapLimit: 0
+  grayScaleToAlpha: 0
+  generateCubemap: 6
+  cubemapConvolution: 0
+  seamlessCubemap: 0
+  textureFormat: 1
+  maxTextureSize: 2048
+  textureSettings:
+    serializedVersion: 2
+    filterMode: 0
+    aniso: 1
+    mipBias: 0
+    wrapU: 1
+    wrapV: 1
+    wrapW: 1
+  nPOTScale: 0
+  lightmap: 0
+  compressionQuality: 50
+  spriteMode: 2
+  spriteExtrude: 1
+  spriteMeshType: 1
+  alignment: 0
+  spritePivot: {x: 0.5, y: 0.5}
+  spritePixelsToUnits: 100
+  spriteBorder: {x: 0, y: 0, z: 0, w: 0}
+  spriteGenerateFallbackPhysicsShape: 1
+  alphaUsage: 1
+  alphaIsTransparency: 1
+  spriteTessellationDetail: -1
+  textureType: 8
+  textureShape: 1
+  singleChannelComponent: 0
+  flipbookRows: 1
+  flipbookColumns: 1
+  maxTextureSizeSet: 0
+  compressionQualitySet: 0
+  textureFormatSet: 0
+  ignorePngGamma: 0
+  applyGammaDecoding: 0
+  swizzle: 50462976
+  cookieLightType: 0
+  platformSettings:
+  - serializedVersion: 4
+    buildTarget: DefaultTexturePlatform
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  - serializedVersion: 4
+    buildTarget: Standalone
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  - serializedVersion: 4
+    buildTarget: Android
+    maxTextureSize: 2048
+    resizeAlgorithm: 1
+    textureFormat: 50
+    textureCompression: 1
+    compressionQuality: 100
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 1
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  spriteSheet:
+    serializedVersion: 2
+    sprites:
+    - serializedVersion: 2
+      name: Produce_Atlas_0
+      rect:
+        serializedVersion: 2
+        x: 28
+        y: 1570
+        width: 1024
+        height: 325
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: b9d459a06312f62a0800000000000000
+      internalID: -6742133601160835685
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Produce_Atlas_1
+      rect:
+        serializedVersion: 2
+        x: 24
+        y: 1445
+        width: 394
+        height: 84
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 073f1253d1b4cc890800000000000000
+      internalID: -7436486295877979280
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Produce_Atlas_2
+      rect:
+        serializedVersion: 2
+        x: 440
+        y: 1427
+        width: 200
+        height: 102
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 3e0908a509d664350800000000000000
+      internalID: 6000604020278857955
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Produce_Atlas_3
+      rect:
+        serializedVersion: 2
+        x: 670
+        y: 1489
+        width: 200
+        height: 40
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 2bcc5c9abe0a2c660800000000000000
+      internalID: 7404657671376587954
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Produce_Atlas_4
+      rect:
+        serializedVersion: 2
+        x: 28
+        y: 1084
+        width: 1024
+        height: 302
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 040e3567353fa6c80800000000000000
+      internalID: -8328577021075267520
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Produce_Atlas_5
+      rect:
+        serializedVersion: 2
+        x: 65
+        y: 1042
+        width: 953
+        height: 10
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: f19c8aa3b43a9af10800000000000000
+      internalID: 2281534229741881631
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Produce_Atlas_6
+      rect:
+        serializedVersion: 2
+        x: 65
+        y: 1017
+        width: 953
+        height: 10
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: da28cb328269cb510800000000000000
+      internalID: 1566291869560505005
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Produce_Atlas_7
+      rect:
+        serializedVersion: 2
+        x: 65
+        y: 882
+        width: 650
+        height: 120
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 00deeec5c1b1be370800000000000000
+      internalID: 8352799742520913152
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Produce_Atlas_8
+      rect:
+        serializedVersion: 2
+        x: 768
+        y: 964
+        width: 250
+        height: 40
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 2bed936a5349af330800000000000000
+      internalID: 3745468998254976690
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Produce_Atlas_9
+      rect:
+        serializedVersion: 2
+        x: 768
+        y: 880
+        width: 250
+        height: 72
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: cca2283d04ed59270800000000000000
+      internalID: 8256749861861468876
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Produce_Atlas_10
+      rect:
+        serializedVersion: 2
+        x: 65
+        y: 775
+        width: 64
+        height: 92
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 63472b10632e6c660800000000000000
+      internalID: 7405855358841943094
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Produce_Atlas_11
+      rect:
+        serializedVersion: 2
+        x: 136
+        y: 777
+        width: 64
+        height: 30
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 26884e5615de482c0800000000000000
+      internalID: -4430155199568115614
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Produce_Atlas_12
+      rect:
+        serializedVersion: 2
+        x: 28
+        y: 550
+        width: 1024
+        height: 184
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 3205ef5eef15c8370800000000000000
+      internalID: 8326119966323396643
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Produce_Atlas_13
+      rect:
+        serializedVersion: 2
+        x: 28
+        y: 521
+        width: 540
+        height: 10
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 0747609964ff09040800000000000000
+      internalID: 4652499093753853040
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Produce_Atlas_14
+      rect:
+        serializedVersion: 2
+        x: 28
+        y: 408
+        width: 540
+        height: 80
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 34b8a31788926a200800000000000000
+      internalID: 190885700201777987
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Produce_Atlas_BTN_Upgrade
+      rect:
+        serializedVersion: 2
+        x: 220
+        y: 766
+        width: 200
+        height: 81
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 671267f2be4c7c546b1b7dba7d8838cd
+      internalID: 885642924
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Produce_Atlas_BTN_UpgradeMain
+      rect:
+        serializedVersion: 2
+        x: 440
+        y: 766
+        width: 100
+        height: 101
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 0ee0bef604db0e04cbff9f4ee76449df
+      internalID: 1157452562
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Produce_Atlas_BTN_AssignMain
+      rect:
+        serializedVersion: 2
+        x: 563
+        y: 765
+        width: 180
+        height: 102
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 8bc6d922390d01a44a615a5ecee09533
+      internalID: -911784957
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Produce_Atlas_IconMain
+      rect:
+        serializedVersion: 2
+        x: 762
+        y: 767
+        width: 108
+        height: 108
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: d88b2c213d6517b4799dd71b0037904b
+      internalID: -1390471967
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    outline: []
+    customData: 
+    physicsShape: []
+    bones: []
+    spriteID: 6c4959da5cfe49a4ab7b151f16616969
+    internalID: 0
+    vertices: []
+    indices: 
+    edges: []
+    weights: []
+    secondaryTextures: []
+    spriteCustomMetadata:
+      entries: []
+    nameFileIdTable:
+      Produce_Atlas_0: -6742133601160835685
+      Produce_Atlas_1: -7436486295877979280
+      Produce_Atlas_10: 7405855358841943094
+      Produce_Atlas_11: -4430155199568115614
+      Produce_Atlas_12: 8326119966323396643
+      Produce_Atlas_13: 4652499093753853040
+      Produce_Atlas_14: 190885700201777987
+      Produce_Atlas_2: 6000604020278857955
+      Produce_Atlas_3: 7404657671376587954
+      Produce_Atlas_4: -8328577021075267520
+      Produce_Atlas_5: 2281534229741881631
+      Produce_Atlas_6: 1566291869560505005
+      Produce_Atlas_7: 8352799742520913152
+      Produce_Atlas_8: 3745468998254976690
+      Produce_Atlas_9: 8256749861861468876
+      Produce_Atlas_BTN_AssignMain: -911784957
+      Produce_Atlas_BTN_Upgrade: 885642924
+      Produce_Atlas_BTN_UpgradeMain: 1157452562
+      Produce_Atlas_IconMain: -1390471967
+  mipmapLimitGroupName: 
+  pSDRemoveMatte: 0
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 

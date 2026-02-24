@@ -1,0 +1,46 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 759949888dbd4f94181f12c19677e1a8, type: 3}
+  m_Name: Assignment_Gather_Food 1
+  m_EditorClassIdentifier: 
+  icon: {fileID: 6846090796749840389, guid: 234ec72a46171f34c892b8cf136ad750, type: 3}
+  categoryName: GatherFood
+  assignmentName:
+    m_TableReference:
+      m_TableCollectionName: GUID:268335084d471524584dfbecc8f4063f
+    m_TableEntryReference:
+      m_KeyId: 18366074441728
+      m_Key: 
+    m_FallbackState: 0
+    m_WaitForCompletion: 0
+    m_LocalVariables: []
+  description:
+    m_TableReference:
+      m_TableCollectionName: GUID:268335084d471524584dfbecc8f4063f
+    m_TableEntryReference:
+      m_KeyId: 19021308612608
+      m_Key: 
+    m_FallbackState: 0
+    m_WaitForCompletion: 0
+    m_LocalVariables: []
+  unitCost:
+    resourceData: {fileID: 11400000, guid: 8017b0ac38087dd4b816adb6df18f00b, type: 2}
+    initialAmount: 0
+  maxCount: 10
+  actionId: produce_food
+  resourceAddList:
+  - resourceData: {fileID: 11400000, guid: eeda4bfd6331f604f9eb55517a7618a5, type: 2}
+    initialAmount: 1
+  duration: 3
+  references:
+    version: 2
+    RefIds: []

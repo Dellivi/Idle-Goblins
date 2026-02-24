@@ -1,0 +1,475 @@
+fileFormatVersion: 2
+guid: be548004c894bd24283f47586280bee6
+TextureImporter:
+  internalIDToNameTable:
+  - first:
+      213: 4376614913082590712
+    second: Gather_Atlas_0
+  - first:
+      213: 3008144406219154248
+    second: Gather_Atlas_1
+  - first:
+      213: 6934480180888058329
+    second: Gather_Atlas_2
+  - first:
+      213: 6932323669075415277
+    second: Gather_Atlas_3
+  - first:
+      213: -3121630443244099275
+    second: Gather_Atlas_4
+  - first:
+      213: 3146362405318661686
+    second: Gather_Atlas_5
+  - first:
+      213: 8503661461896819141
+    second: Gather_Atlas_6
+  - first:
+      213: -5908536357225988618
+    second: Gather_Atlas_7
+  - first:
+      213: -4303521915178111080
+    second: Gather_Atlas_8
+  - first:
+      213: 3494195514419438529
+    second: Gather_Atlas_9
+  - first:
+      213: -5730820654341628577
+    second: Gather_Atlas_10
+  - first:
+      213: -7725931427308833382
+    second: Gather_Atlas_11
+  - first:
+      213: 890949138907407876
+    second: Gather_Atlas_12
+  - first:
+      213: -3162107085030594562
+    second: Gather_Atlas_13
+  externalObjects: {}
+  serializedVersion: 13
+  mipmaps:
+    mipMapMode: 0
+    enableMipMap: 0
+    sRGBTexture: 1
+    linearTexture: 0
+    fadeOut: 0
+    borderMipMap: 0
+    mipMapsPreserveCoverage: 0
+    alphaTestReferenceValue: 0.5
+    mipMapFadeDistanceStart: 1
+    mipMapFadeDistanceEnd: 3
+  bumpmap:
+    convertToNormalMap: 0
+    externalNormalMap: 0
+    heightScale: 0.25
+    normalMapFilter: 0
+    flipGreenChannel: 0
+  isReadable: 0
+  streamingMipmaps: 0
+  streamingMipmapsPriority: 0
+  vTOnly: 0
+  ignoreMipmapLimit: 0
+  grayScaleToAlpha: 0
+  generateCubemap: 6
+  cubemapConvolution: 0
+  seamlessCubemap: 0
+  textureFormat: 1
+  maxTextureSize: 2048
+  textureSettings:
+    serializedVersion: 2
+    filterMode: 0
+    aniso: 1
+    mipBias: 0
+    wrapU: 1
+    wrapV: 1
+    wrapW: 1
+  nPOTScale: 0
+  lightmap: 0
+  compressionQuality: 50
+  spriteMode: 2
+  spriteExtrude: 1
+  spriteMeshType: 1
+  alignment: 0
+  spritePivot: {x: 0.5, y: 0.5}
+  spritePixelsToUnits: 100
+  spriteBorder: {x: 0, y: 0, z: 0, w: 0}
+  spriteGenerateFallbackPhysicsShape: 1
+  alphaUsage: 1
+  alphaIsTransparency: 1
+  spriteTessellationDetail: -1
+  textureType: 8
+  textureShape: 1
+  singleChannelComponent: 0
+  flipbookRows: 1
+  flipbookColumns: 1
+  maxTextureSizeSet: 0
+  compressionQualitySet: 0
+  textureFormatSet: 0
+  ignorePngGamma: 0
+  applyGammaDecoding: 0
+  swizzle: 50462976
+  cookieLightType: 0
+  platformSettings:
+  - serializedVersion: 4
+    buildTarget: DefaultTexturePlatform
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  - serializedVersion: 4
+    buildTarget: Standalone
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  - serializedVersion: 4
+    buildTarget: Android
+    maxTextureSize: 2048
+    resizeAlgorithm: 1
+    textureFormat: 50
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 1
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  spriteSheet:
+    serializedVersion: 2
+    sprites:
+    - serializedVersion: 2
+      name: Gather_Atlas_PanelDescription
+      rect:
+        serializedVersion: 2
+        x: 229
+        y: 1577
+        width: 540
+        height: 80
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 8f507fc331cdcbc30800000000000000
+      internalID: 4376614913082590712
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Gather_Atlas_BTN
+      rect:
+        serializedVersion: 2
+        x: 831
+        y: 1557
+        width: 200
+        height: 100
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 84365cd46631fb920800000000000000
+      internalID: 3008144406219154248
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Gather_Atlas_Bar
+      rect:
+        serializedVersion: 2
+        x: 229
+        y: 1561
+        width: 540
+        height: 10
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 9d9b1dbebf83c3060800000000000000
+      internalID: 6934480180888058329
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Gather_Atlas_BarBack
+      rect:
+        serializedVersion: 2
+        x: 229
+        y: 1547
+        width: 540
+        height: 10
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: de0d543e5af843060800000000000000
+      internalID: 6932323669075415277
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Gather_Atlas_PanelResourceBack
+      rect:
+        serializedVersion: 2
+        x: 831
+        y: 1504
+        width: 200
+        height: 40
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 539e366a6adbda4d0800000000000000
+      internalID: -3121630443244099275
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Gather_Atlas_9
+      rect:
+        serializedVersion: 2
+        x: 307
+        y: 608
+        width: 80
+        height: 30
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 1c3ebbcae40ed7030800000000000000
+      internalID: 3494195514419438529
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Gather_Atlas_BackNameTab
+      rect:
+        serializedVersion: 2
+        x: 0
+        y: 1363
+        width: 1080
+        height: 100
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: f5dde726af80870b0800000000000000
+      internalID: -5730820654341628577
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Gather_Atlas_LocationPanel
+      rect:
+        serializedVersion: 2
+        x: 28
+        y: 1015
+        width: 1024
+        height: 326
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: a95fa34fc4af7c490800000000000000
+      internalID: -7725931427308833382
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Gather_Atlas_DownPanel
+      rect:
+        serializedVersion: 2
+        x: 0
+        y: 900
+        width: 1080
+        height: 95
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 406248975894d5c00800000000000000
+      internalID: 890949138907407876
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Gather_Atlas_DownBTN
+      rect:
+        serializedVersion: 2
+        x: 25
+        y: 570
+        width: 254
+        height: 68
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: ef761071c50fd14d0800000000000000
+      internalID: -3162107085030594562
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Gather_Atlas_Panel
+      rect:
+        serializedVersion: 2
+        x: 25
+        y: 658
+        width: 1024
+        height: 186
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 891fe81529a931500800000000000000
+      internalID: 365805947971367320
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Gather_Atlas_0
+      rect:
+        serializedVersion: 2
+        x: 197
+        y: 508
+        width: 300
+        height: 40
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: d4d9f285a386fb34c855ad5a57909e7a
+      internalID: 1164012810
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Gather_Atlas_1
+      rect:
+        serializedVersion: 2
+        x: 28
+        y: 1507
+        width: 150
+        height: 150
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: b50c5287fa950e24c92d00f4529f885a
+      internalID: -654422951
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    outline: []
+    customData: 
+    physicsShape: []
+    bones: []
+    spriteID: ac7cf8fc35e8d5c44a6a9aa78c2d1f64
+    internalID: 0
+    vertices: []
+    indices: 
+    edges: []
+    weights: []
+    secondaryTextures: []
+    spriteCustomMetadata:
+      entries: []
+    nameFileIdTable:
+      Gather_Atlas_0: 1164012810
+      Gather_Atlas_1: -654422951
+      Gather_Atlas_9: 3494195514419438529
+      Gather_Atlas_BTN: 3008144406219154248
+      Gather_Atlas_BackNameTab: -5730820654341628577
+      Gather_Atlas_Bar: 6934480180888058329
+      Gather_Atlas_BarBack: 6932323669075415277
+      Gather_Atlas_DownBTN: -3162107085030594562
+      Gather_Atlas_DownPanel: 890949138907407876
+      Gather_Atlas_InManagerPanel: -5908536357225988618
+      Gather_Atlas_InResourcePanel: -4303521915178111080
+      Gather_Atlas_LocationPanel: -7725931427308833382
+      Gather_Atlas_ManagerPanel: 3146362405318661686
+      Gather_Atlas_Panel: 365805947971367320
+      Gather_Atlas_PanelDescription: 4376614913082590712
+      Gather_Atlas_PanelResourceBack: -3121630443244099275
+      Gather_Atlas_resourcePanel: 8503661461896819141
+  mipmapLimitGroupName: 
+  pSDRemoveMatte: 0
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
