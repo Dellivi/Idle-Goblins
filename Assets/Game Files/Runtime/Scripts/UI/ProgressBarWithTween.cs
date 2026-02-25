@@ -46,7 +46,6 @@ public class ProgressBarWithTween : MonoBehaviour
         }
 
         RefreshImmediately();
-        StartTween();
     }
 
     /// <summary>
@@ -111,7 +110,7 @@ public class ProgressBarWithTween : MonoBehaviour
         UpdateTimeText();
     }
 
-    private void StartTween()
+    public void StartTween()
     {
         // Защита от рекурсии
         if (isProcessingComplete) return;
@@ -168,9 +167,9 @@ public class ProgressBarWithTween : MonoBehaviour
 
         float timeRemaining = Mathf.Max(0f, action.GetDuration() - action.timer);
 
-        if (timeRemaining <= 0.001f)
+        if (timeRemaining <= 0.001f || action.level <= 0)
         {
-            text_time.text = "0.0s";
+            text_time.text = $"0.0s/{action.GetDuration():F1}s";
             return;
         }
 
@@ -190,6 +189,8 @@ public class ProgressBarWithTween : MonoBehaviour
         {
             text_time.text = $"{timeRemaining:F1}s";
         }
+
+        text_time.text += $"/{action.GetDuration():F1}s";
     }
 
     private void OnTweenComplete()

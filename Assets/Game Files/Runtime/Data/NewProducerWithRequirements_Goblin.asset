@@ -1,0 +1,56 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c73dc4e864786db4db78995ace857139, type: 3}
+  m_Name: NewProducerWithRequirements_Goblin
+  m_EditorClassIdentifier: Assembly-CSharp::ProducerWithRequirementsConfig
+  categoryId: produce_goblinsId
+  categoryName:
+    m_TableReference:
+      m_TableCollectionName: GUID:268335084d471524584dfbecc8f4063f
+    m_TableEntryReference:
+      m_KeyId: 18366074441728
+      m_Key: 
+    m_FallbackState: 0
+    m_WaitForCompletion: 0
+    m_LocalVariables: []
+  categoryDescription:
+    m_TableReference:
+      m_TableCollectionName: GUID:268335084d471524584dfbecc8f4063f
+    m_TableEntryReference:
+      m_KeyId: 19021308612608
+      m_Key: 
+    m_FallbackState: 0
+    m_WaitForCompletion: 0
+    m_LocalVariables: []
+  icon: {fileID: -654422951, guid: be548004c894bd24283f47586280bee6, type: 3}
+  actionId: produce_goblins12
+  costMultiplier: 1.08
+  baseProduction: 1
+  productionMultiplier: 1.07
+  baseDuration: 30
+  minDuration: 5
+  minPaybackTime: 1
+  endgamePaybackFactor: 0
+  durationStepLevels: 10
+  durationDecayPerStep: 1
+  showRequirements: 1
+  costResourceList:
+  - resource: {fileID: 11400000, guid: 50fb86d7c83bc754d953ab67351eff9c, type: 2}
+    baseCost: 10
+  productionResource: {fileID: 11400000, guid: 8017b0ac38087dd4b816adb6df18f00b, type: 2}
+  levelRequirements:
+  - resource: {fileID: 11400000, guid: 50fb86d7c83bc754d953ab67351eff9c, type: 2}
+    unlockLevel: 0
+    amountPerLevel: 0
+  references:
+    version: 2
+    RefIds: []

@@ -16,7 +16,7 @@ public class PurchaseSystem : MonoBehaviour
     [SerializeField] private TextMeshProUGUI textDescription;
     [SerializeField] private Image icon;
 
-    private PurchaseConfig config;
+    [SerializeField] private PurchaseConfig config;
 
     private int currentLevel;
     private string saveKey;
@@ -110,8 +110,8 @@ public class PurchaseSystem : MonoBehaviour
             // Обновляем UI при завершении цикла
             if (resourceProduceView != null)
             {
-                float production = action.GetProductionPerCycle(1f);
-                resourceProduceView.Show(Mathf.RoundToInt(production));
+                double production = action.GetProductionPerCycle(1f);
+                resourceProduceView.Show(production);
             }
 
             // Прогресс-бар автоматически обновится через SetupWithCycleComplete
@@ -126,11 +126,6 @@ public class PurchaseSystem : MonoBehaviour
 
     private void ApplyIdleAction()
     {
-        if (CurrentLevel <= 0)
-        {
-            // Если уровень 0, ничего не регистрируем
-            return;
-        }
 
         IdleManager.Instance.RegisterOrUpdateAction(
             Config.categoryId,
@@ -160,7 +155,7 @@ public class PurchaseSystem : MonoBehaviour
 
     #region Economy
 
-    private bool CanAfford()
+    protected virtual bool CanAfford()
     {
         foreach (var cost in Config.costResourceList)
         {
@@ -172,7 +167,7 @@ public class PurchaseSystem : MonoBehaviour
         return true;
     }
 
-    private void SpendResources()
+    protected virtual void SpendResources()
     {
         foreach (var cost in Config.costResourceList)
         {
@@ -181,7 +176,7 @@ public class PurchaseSystem : MonoBehaviour
         }
     }
 
-    private float GetCurrentProduction()
+    private double GetCurrentProduction()
     {
         if (cachedAction != null)
             return cachedAction.GetProductionPerCycle(1f);
@@ -189,7 +184,7 @@ public class PurchaseSystem : MonoBehaviour
         return Config.GetProductionForLevel(CurrentLevel);
     }
 
-    private Dictionary<ResourceData, float> GetCurrentCosts()
+    protected virtual Dictionary<ResourceData, float> GetCurrentCosts()
     {
         Dictionary<ResourceData, float> result = new();
 
@@ -228,7 +223,7 @@ public class PurchaseSystem : MonoBehaviour
             multiCostView.ShowCosts(GetCurrentCosts(), config.showRequirements);
 
         if (resourceProduceView != null)
-            resourceProduceView.Show(Mathf.RoundToInt(GetCurrentProduction()));
+            resourceProduceView.Show(GetCurrentProduction());
 
         if (buyButton != null)
             buyButton.interactable = CanAfford();
