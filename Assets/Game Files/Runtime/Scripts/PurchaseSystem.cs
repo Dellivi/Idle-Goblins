@@ -1,13 +1,22 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
-
+/// <summary>
+/// Контроллер панели покупки/улучшения idle-производителя.
+///
+/// ОПТИМИЗАЦИИ ДЛЯ 50+ ПАНЕЛЕЙ:
+/// - HandleResourceChanged фильтрует по relevantResources (HashSet, O(1) вместо foreach O(N))
+/// - RefreshBuyButton обновляет кнопку только если affordability изменилась
+/// - Подписка на ResourceManager только на нужные ресурсы через фильтр
+/// </summary>
 public class PurchaseSystem : MonoBehaviour
 {
-    [Header("UI Elements")]
+    // ──────────────────────────────────────────────
+    //  Inspector
+    // ──────────────────────────────────────────────
+    [Header("References")]
     [SerializeField] private ProgressBarWithTween progressBar;
     [SerializeField] private Button buyButton;
     [SerializeField] private MultiCostView multiCostView;
@@ -16,250 +25,297 @@ public class PurchaseSystem : MonoBehaviour
     [SerializeField] private TextMeshProUGUI textDescription;
     [SerializeField] private Image icon;
 
-    [SerializeField] private PurchaseConfig config;
+    [Header("Config (опционально, можно задать через Setup())")]
+    [SerializeField] private ProductionConfig config;
 
+    // ──────────────────────────────────────────────
+    //  Состояние
+    // ──────────────────────────────────────────────
     private int currentLevel;
     private string saveKey;
     private IdleAction cachedAction;
+    private bool isInitialized;
 
-    public PurchaseConfig Config { get => config; protected set => config = value; }
-    public int CurrentLevel { get => currentLevel; protected set => currentLevel = value; }
+    // Кэш affordability — обновляем кнопку только при изменении
+    private bool cachedCanAfford;
 
+    // Кэш стоимостей — не аллоцируем словарь каждый вызов
+    private readonly Dictionary<ResourceData, float> costCache = new();
+
+    // HashSet для O(1) проверки relevance вместо foreach O(N) по costList
+    private readonly HashSet<ResourceData> relevantResources = new();
+
+    // ──────────────────────────────────────────────
+    //  Свойства
+    // ──────────────────────────────────────────────
+    public ProductionConfig Config => config;
+    public int CurrentLevel => currentLevel;
+    public IdleAction CachedAction => cachedAction;
+
+    // ──────────────────────────────────────────────
+    //  Unity Lifecycle
+    // ──────────────────────────────────────────────
     private void Awake()
     {
-        if (buyButton != null)
-            buyButton.onClick.AddListener(OnClick);
+        buyButton?.onClick.AddListener(OnBuyClicked);
     }
 
     private void OnEnable()
     {
-        // Подписываемся на события IdleManager
-        if (IdleManager.Instance != null)
-        {
-            IdleManager.Instance.OnActionCycleComplete += OnCycleComplete;
-        }
+        SubscribeEvents();
+        if (!isInitialized) return;
+        if (progressBar != null && cachedAction != null)
+            progressBar.Setup(cachedAction);
+        RefreshUI();
     }
 
     private void OnDisable()
     {
-        if (IdleManager.Instance != null)
-        {
-            IdleManager.Instance.OnActionCycleComplete -= OnCycleComplete;
-        }
+        UnsubscribeEvents();
     }
 
-    public void Setup(PurchaseConfig config)
+    // ──────────────────────────────────────────────
+    //  Public API
+    // ──────────────────────────────────────────────
+    public void Setup(ProductionConfig cfg)
     {
-        this.Config = config;
-
-        if (config == null)
+        if (cfg == null)
         {
-            Debug.LogError("PurchaseSystem: Config not assigned!");
+            Debug.LogError($"[PurchaseSystem] {gameObject.name}: null конфиг!", this);
             return;
         }
 
-        //LoadLevel();
+        config = cfg;
+        saveKey = $"producer_{cfg.categoryId}_{cfg.actionId}_level";
 
-        saveKey = $"{config.categoryId}_{config.actionId}_level";
+        // Строим HashSet один раз — O(1) проверка в горячем пути
+        relevantResources.Clear();
+        foreach (var cost in cfg.costResourceList)
+            if (cost.resource != null)
+                relevantResources.Add(cost.resource);
 
-        // Загружаем уровень, если еще не загружен
-        if (CurrentLevel == 0)
-        {
-           // LoadLevel();
-        }
+        LoadLevel();
+        ApplyToIdleManager();
+        BuildUI();
 
-        SetupUI();
-        ApplyIdleAction();
+        isInitialized = true;
     }
 
- private void OnClick()
-{
-    if (!CanAfford()) return;
-
-    SpendResources();
-
-    CurrentLevel++;
-    SaveLevel();
-
-    // ✅ ИСПРАВЛЕНО: Используем RegisterOrUpdateAction вместо UpgradeAction
-    IdleManager.Instance.RegisterOrUpdateAction(
-        Config.categoryId,
-        Config.actionId,
-        Config.productionResource,
-        Config,
-        CurrentLevel
-    );
-
-    // Обновляем кэш
-    cachedAction = IdleManager.Instance.GetAction(Config.categoryId, Config.actionId);
-
-    // Обновляем UI
-    if (progressBar != null && cachedAction != null)
+    // ──────────────────────────────────────────────
+    //  Event Subscription
+    // ──────────────────────────────────────────────
+    private void SubscribeEvents()
     {
-        progressBar.SetupWithCycleComplete(cachedAction);
+        if (IdleManager.Instance != null)
+        {
+            IdleManager.Instance.OnCycleComplete += HandleCycleComplete;
+            IdleManager.Instance.OnMultiplierChanged += HandleMultiplierChanged;
+        }
+
+        if (ResourceManager.Instance != null)
+            ResourceManager.Instance.OnResourceChanged += HandleResourceChanged;
     }
 
-    UpdateUI();
-}
-
-    private void OnCycleComplete(IdleAction action)
+    private void UnsubscribeEvents()
     {
-        // Проверяем, относится ли событие к нашему действию
-        if (action == cachedAction)
+        if (IdleManager.Instance != null)
         {
-            // Обновляем UI при завершении цикла
-            if (resourceProduceView != null)
-            {
-                double production = action.GetProductionPerCycle(1f);
-                resourceProduceView.Show(production);
-            }
-
-            // Прогресс-бар автоматически обновится через SetupWithCycleComplete
-            if (progressBar != null)
-            {
-                progressBar.SetupWithCycleComplete(action);
-            }
+            IdleManager.Instance.OnCycleComplete -= HandleCycleComplete;
+            IdleManager.Instance.OnMultiplierChanged -= HandleMultiplierChanged;
         }
+
+        if (ResourceManager.Instance != null)
+            ResourceManager.Instance.OnResourceChanged -= HandleResourceChanged;
     }
 
-    #region Idle Integration
-
-    private void ApplyIdleAction()
+    // ──────────────────────────────────────────────
+    //  Button Handler
+    // ──────────────────────────────────────────────
+    private void OnBuyClicked()
     {
+        if (!CanAfford()) return;
 
-        IdleManager.Instance.RegisterOrUpdateAction(
-            Config.categoryId,
-            Config.actionId,
-            Config.productionResource,
-            Config,
-            CurrentLevel
-        );
+        SpendResources();
+        currentLevel++;
+        SaveLevel();
 
-        cachedAction = IdleManager.Instance.GetAction(Config.categoryId, Config.actionId);
+        // Обновляем relevantResources если стоимость могла измениться
+        relevantResources.Clear();
+        foreach (var cost in config.costResourceList)
+            if (cost.resource != null)
+                relevantResources.Add(cost.resource);
 
-        // Настраиваем прогресс-бар
-        if (progressBar != null && cachedAction != null)
-        {
-            progressBar.Setup(cachedAction); // Используем Setup вместо SetupWithCycleComplete для первого запуска
-        }
+        cachedAction = IdleManager.Instance.RegisterOrUpdateAction(
+            config.actionId, config.productionResource, config, currentLevel);
 
-        // Обновляем отображение производства
-        if (resourceProduceView != null && cachedAction != null)
-        {
-            float production = cachedAction.GetProductionPerCycle(1f);
-            resourceProduceView.Show(Mathf.RoundToInt(production));
-        }
+        progressBar?.Setup(cachedAction);
+        RefreshUI();
     }
 
-    #endregion
+    // ──────────────────────────────────────────────
+    //  Event Handlers
+    // ──────────────────────────────────────────────
+    private void HandleCycleComplete(IdleAction action, float produced)
+    {
+        if (action != cachedAction) return;
+        resourceProduceView?.Show(produced);
+    }
 
-    #region Economy
+    private void HandleMultiplierChanged(float newMultiplier)
+    {
+        RefreshProductionView();
+        ForceRefreshBuyButton();
+    }
 
+    /// <summary>
+    /// Горячий путь — вызывается часто.
+    /// HashSet.Contains = O(1). Ранний выход если ресурс нерелевантен.
+    /// Обновляем кнопку только если affordability реально изменилась.
+    /// </summary>
+    private void HandleResourceChanged(ResourceData data, double newAmount, double delta)
+    {
+        // O(1) — HashSet вместо foreach по списку
+        if (!relevantResources.Contains(data)) return;
+
+        RefreshCostView();
+
+        // Пересчитываем и обновляем кнопку только при изменении состояния
+        bool canAffordNow = CanAfford();
+        if (canAffordNow == cachedCanAfford) return;
+
+        cachedCanAfford = canAffordNow;
+        if (buyButton != null)
+            buyButton.interactable = cachedCanAfford;
+    }
+
+    // ──────────────────────────────────────────────
+    //  Idle Manager Integration
+    // ──────────────────────────────────────────────
+    private void ApplyToIdleManager()
+    {
+        if (currentLevel <= 0)
+        {
+            cachedAction = null;
+            progressBar?.SetInactive();
+            return;
+        }
+
+        cachedAction = IdleManager.Instance.RegisterOrUpdateAction(
+            config.actionId, config.productionResource, config, currentLevel);
+
+        progressBar?.Setup(cachedAction);
+    }
+
+    // ──────────────────────────────────────────────
+    //  Economy
+    // ──────────────────────────────────────────────
     protected virtual bool CanAfford()
     {
-        foreach (var cost in Config.costResourceList)
-        {
-            float amount = Config.GetCostForLevel(cost, CurrentLevel);
-            if (!ResourceManager.Instance.CanAfford(cost.resource, amount))
+        if (config == null) return false;
+        foreach (var cost in config.costResourceList)
+            if (!ResourceManager.Instance.CanAfford(cost.resource, config.GetCostForLevel(cost, currentLevel)))
                 return false;
-        }
-
         return true;
     }
 
     protected virtual void SpendResources()
     {
-        foreach (var cost in Config.costResourceList)
-        {
-            float amount = Config.GetCostForLevel(cost, CurrentLevel);
-            ResourceManager.Instance.SpendResource(cost.resource, amount);
-        }
+        foreach (var cost in config.costResourceList)
+            ResourceManager.Instance.SpendResource(cost.resource, config.GetCostForLevel(cost, currentLevel));
     }
 
-    private double GetCurrentProduction()
+    protected virtual IReadOnlyDictionary<ResourceData, float> GetCurrentCosts()
+    {
+        costCache.Clear();
+        foreach (var cost in config.costResourceList)
+            costCache[cost.resource] = config.GetCostForLevel(cost, currentLevel);
+        return costCache;
+    }
+
+    private float GetCurrentProduction()
     {
         if (cachedAction != null)
-            return cachedAction.GetProductionPerCycle(1f);
-
-        return Config.GetProductionForLevel(CurrentLevel);
+            return cachedAction.GetProductionPerCycle(IdleManager.Instance.GlobalMultiplier);
+        return currentLevel > 0 ? config.GetProductionForLevel(currentLevel) : 0f;
     }
 
-    protected virtual Dictionary<ResourceData, float> GetCurrentCosts()
+    // ──────────────────────────────────────────────
+    //  UI
+    // ──────────────────────────────────────────────
+    private void BuildUI()
     {
-        Dictionary<ResourceData, float> result = new();
-
-        foreach (var cost in Config.costResourceList)
-        {
-            result[cost.resource] = Config.GetCostForLevel(cost, CurrentLevel);
-        }
-
-        return result;
+        if (icon != null) icon.sprite = config.icon;
+        if (textDescription != null) textDescription.text = config.categoryDescription.GetLocalizedString();
+        if (resourceProduceView != null) resourceProduceView.Setup(config.productionResource);
+        RefreshUI();
     }
 
-    #endregion
-
-    #region UI
-
-    private void SetupUI()
+    private void RefreshUI()
     {
-        if (textName != null)
-            textName.text = $"{Config.categoryName.GetLocalizedString()} lvl {CurrentLevel}";
-
-        if (textDescription != null)
-            textDescription.text = Config.categoryDescription.GetLocalizedString();
-
-        if (icon != null)
-            icon.sprite = Config.icon;
-
-        if (resourceProduceView != null)
-            resourceProduceView.Setup(Config.productionResource);
-
-        UpdateUI();
+        RefreshNameText();
+        RefreshCostView();
+        RefreshProductionView();
+        ForceRefreshBuyButton();
     }
 
-    private void UpdateUI()
+    private void RefreshNameText()
     {
-        if (multiCostView != null)
-            multiCostView.ShowCosts(GetCurrentCosts(), config.showRequirements);
+        if (textName == null) return;
+        textName.text = config.categoryName.GetLocalizedString() +
+                        (currentLevel > 0 ? $" lv.{currentLevel}" : " (не куплено)");
+    }
 
-        if (resourceProduceView != null)
-            resourceProduceView.Show(GetCurrentProduction());
+    private void RefreshCostView()
+        => multiCostView?.ShowCosts(GetCurrentCosts(), config.showRequirements);
 
+    private void RefreshProductionView()
+        => resourceProduceView?.Show(GetCurrentProduction());
+
+    /// <summary>Полный пересчёт без проверки кэша — для явных вызовов.</summary>
+    private void ForceRefreshBuyButton()
+    {
+        cachedCanAfford = CanAfford();
         if (buyButton != null)
-            buyButton.interactable = CanAfford();
-
-        if (textName != null)
-            textName.text = $"{Config.categoryName.GetLocalizedString()} lvl {CurrentLevel}";
+            buyButton.interactable = cachedCanAfford;
     }
 
-    #endregion
-
-    #region Save / Load
-
+    // ──────────────────────────────────────────────
+    //  Save / Load
+    // ──────────────────────────────────────────────
     private void SaveLevel()
     {
-        PlayerPrefs.SetInt(saveKey, CurrentLevel);
+        PlayerPrefs.SetInt(saveKey, currentLevel);
         PlayerPrefs.Save();
-        Debug.Log($"Saved level {CurrentLevel} for {Config?.name}");
     }
 
     private void LoadLevel()
-    {
-        if (!string.IsNullOrEmpty(saveKey))
-        {
-            CurrentLevel = PlayerPrefs.GetInt(saveKey, 0);
-            Debug.Log($"Loaded level {CurrentLevel} for {Config?.name}");
-        }
-    }
+        => currentLevel = PlayerPrefs.GetInt(saveKey, 0);
 
-    #endregion
-
-    // Для отладки
+    // ──────────────────────────────────────────────
+    //  Editor
+    // ──────────────────────────────────────────────
+#if UNITY_EDITOR
     private void OnValidate()
     {
-        if (Config != null && string.IsNullOrEmpty(saveKey))
-        {
-            saveKey = $"{Config.categoryId}_{Config.actionId}_level";
-        }
+        if (config != null && string.IsNullOrEmpty(saveKey))
+            saveKey = $"producer_{config.categoryId}_{config.actionId}_level";
     }
+
+    [ContextMenu("Reset Level (Debug)")]
+    private void DebugResetLevel()
+    {
+        if (!Application.isPlaying) return;
+        currentLevel = 0;
+        PlayerPrefs.DeleteKey(saveKey);
+        ApplyToIdleManager();
+        RefreshUI();
+    }
+
+    [ContextMenu("Add Level (Debug)")]
+    private void DebugAddLevel()
+    {
+        if (!Application.isPlaying) return;
+        OnBuyClicked();
+    }
+#endif
 }

@@ -1,330 +1,85 @@
-using System;
-using System.Collections;
+п»їusing System;
+using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
-using TMPro;
 
 /// <summary>
-/// UI элемент для отображения отдельного ресурса
+/// UI-СЌР»РµРјРµРЅС‚ РѕРґРЅРѕРіРѕ СЂРµСЃСѓСЂСЃР° РІ С…СЂР°РЅРёР»РёС‰Рµ.
+/// РћС‚РѕР±СЂР°Р¶Р°РµС‚ РёРєРѕРЅРєСѓ, РЅР°Р·РІР°РЅРёРµ Рё С‚РµРєСѓС‰РµРµ РєРѕР»РёС‡РµСЃС‚РІРѕ.
 /// </summary>
 public class ResourceItemUI : MonoBehaviour
 {
-    [Header("UI Components")]
-    [SerializeField] private Image resourceIcon;
-    [SerializeField] private TextMeshProUGUI resourceNameText;
-    [SerializeField] private TextMeshProUGUI resourceValueText;
+    // в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
+    //  Inspector
+    // в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
+    [Header("UI")]
+    [SerializeField] private Image icon;
+    [SerializeField] private TextMeshProUGUI textName;
+    [SerializeField] private TextMeshProUGUI textAmount;
 
-    [Header("Animation Settings")]
-    [SerializeField] private float animationDuration = 0.3f;
-    [SerializeField] private AnimationCurve scaleCurve = AnimationCurve.EaseInOut(0, 1, 1, 1.1f);
-    [SerializeField] private Color highlightColor = Color.yellow;
-    [SerializeField] private Color normalColor = Color.white;
+    [Header("Animation")]
+    [SerializeField] private Animator animator;
+    [SerializeField] private string updateTrigger = "OnUpdate";
 
-    [Header("Value Display Settings")]
-    [SerializeField] private string valueFormat = "F0"; // Формат отображения числа
-    [SerializeField] private bool showValueChange = true;
-    [SerializeField] private Color increaseColor = Color.green;
-    [SerializeField] private Color decreaseColor = Color.red;
+    [Header("Optional: Progress Bar")]
+    [SerializeField] private Slider progressBar;
 
-    // Данные ресурса
+    // в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
+    //  РЎРѕСЃС‚РѕСЏРЅРёРµ
+    // в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
     private ResourceData resourceData;
-    private float currentValue;
-    private float previousValue;
-    private float maxValue = -1f; // -1 означает без лимита
+    private double currentValue;
+    private double maxValue = -1; // -1 = РЅРµ Р·Р°РґР°РЅРѕ
 
-    // Компоненты анимации
-    private Coroutine updateAnimationCoroutine;
-    private Coroutine valueChangeCoroutine;
+    // в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
+    //  Public API
+    // в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
 
-    // События
-    public event Action<ResourceData, float> OnValueChanged;
-
-    #region Properties
-
-    public ResourceData ResourceData => resourceData;
-    public float CurrentValue => currentValue;
-    public float MaxValue => maxValue;
-
-    #endregion
-
-    #region Initialization
-
-    /// <summary>
-    /// Инициализация элемента ресурса
-    /// </summary>
-    public void Initialize(ResourceData resource, float initialValue, float maxVal = -1f)
+    public void Initialize(ResourceData data, double value)
     {
-        if (resource == null)
-        {
-            Debug.LogError("[ResourceItemUI] Попытка инициализации с null ResourceData");
-            return;
-        }
+        resourceData = data;
+        currentValue = value;
 
-        resourceData = resource;
-        currentValue = initialValue;
-        previousValue = initialValue;
-        maxValue = maxVal;
+        if (icon != null && data != null)
+            icon.sprite = data.icon;
 
-        UpdateDisplay();
+        if (textName != null && data != null)
+            textName.text = data.nameResource.GetLocalizedString();
 
-        Debug.Log($"[ResourceItemUI] Инициализирован ресурс: {resource.name} = {initialValue}");
+        RefreshAmountText();
     }
 
-    #endregion
-
-    #region Value Management
-
-    /// <summary>
-    /// Обновление значения ресурса
-    /// </summary>
-    public void UpdateValue(float newValue)
+    public void UpdateValue(double newValue)
     {
-        if (Mathf.Approximately(currentValue, newValue))
-            return;
-
-        previousValue = currentValue;
         currentValue = newValue;
-
-        UpdateDisplay();
-        OnValueChanged?.Invoke(resourceData, newValue);
-
-        // Показываем изменение значения
-        if (showValueChange)
-        {
-            ShowValueChange();
-        }
+        RefreshAmountText();
+        RefreshProgressBar();
     }
 
-    /// <summary>
-    /// Установка максимального значения для прогресс-бара
-    /// </summary>
-    public void SetMaxValue(float maxVal)
+    public void SetMaxValue(double max)
     {
-        maxValue = maxVal;
-        UpdateResourceValue(); // Обновляем отображение значения
+        maxValue = max;
+        RefreshProgressBar();
     }
 
-    #endregion
-
-    #region Display Updates
-
-    /// <summary>
-    /// Обновление всего отображения
-    /// </summary>
-    private void UpdateDisplay()
-    {
-        UpdateResourceName();
-        UpdateResourceValue();
-        UpdateIcon();
-    }
-
-    /// <summary>
-    /// Обновление названия ресурса
-    /// </summary>
-    private void UpdateResourceName()
-    {
-        if (resourceNameText != null && resourceData != null)
-        {
-            // Используем локализованное название если доступно
-            string displayName = resourceData.nameResource?.GetLocalizedString() ?? resourceData.name;
-            resourceNameText.text = displayName;
-        }
-    }
-
-    /// <summary>
-    /// Обновление значения ресурса
-    /// </summary>
-    private void UpdateResourceValue()
-    {
-        if (resourceValueText != null)
-        {
-            string valueString = FormatValue(currentValue);
-
-            // Добавляем максимальное значение если установлено
-            if (maxValue > 0)
-            {
-                valueString += $" / {FormatValue(maxValue)}";
-            }
-
-            resourceValueText.text = valueString;
-        }
-    }
-
-    /// <summary>
-    /// Обновление иконки ресурса
-    /// </summary>
-    private void UpdateIcon()
-    {
-        if (resourceIcon != null && resourceData != null)
-        {
-            // Используем иконку из ResourceData
-            if (resourceData.icon != null)
-            {
-                resourceIcon.sprite = resourceData.icon;
-                resourceIcon.gameObject.SetActive(true);
-            }
-            else
-            {
-                // Если иконка не установлена в ResourceData, пробуем загрузить из Resources
-                Sprite fallbackSprite = Resources.Load<Sprite>($"ResourceIcons/{resourceData.name}");
-                if (fallbackSprite != null)
-                {
-                    resourceIcon.sprite = fallbackSprite;
-                    resourceIcon.gameObject.SetActive(true);
-                }
-                else
-                {
-                    resourceIcon.gameObject.SetActive(false);
-                }
-            }
-        }
-    }
-
-    #endregion
-
-    #region Animations
-
-    /// <summary>
-    /// Воспроизведение анимации обновления
-    /// </summary>
     public void PlayUpdateAnimation()
     {
-        if (updateAnimationCoroutine != null)
-        {
-            StopCoroutine(updateAnimationCoroutine);
-        }
-
-        updateAnimationCoroutine = StartCoroutine(UpdateAnimationCoroutine());
+        if (animator != null && !string.IsNullOrEmpty(updateTrigger))
+            animator.SetTrigger(updateTrigger);
     }
 
-    /// <summary>
-    /// Корутина анимации обновления
-    /// </summary>
-    private IEnumerator UpdateAnimationCoroutine()
+    // в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
+    //  Helpers
+    // в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
+    private void RefreshAmountText()
     {
-        Vector3 originalScale = transform.localScale;
-        float elapsedTime = 0f;
-
-        while (elapsedTime < animationDuration)
-        {
-            elapsedTime += Time.deltaTime;
-            float progress = elapsedTime / animationDuration;
-
-            // Анимация масштаба
-            float scaleMultiplier = scaleCurve.Evaluate(progress);
-            transform.localScale = originalScale * scaleMultiplier;
-
-            yield return null;
-        }
-
-        // Возвращаем исходное состояние
-        transform.localScale = originalScale;
-
-        updateAnimationCoroutine = null;
+        if (textAmount == null) return;
+        textAmount.text = NumberFormatter.FormatSmart(currentValue);
     }
 
-    /// <summary>
-    /// Показ изменения значения
-    /// </summary>
-    private void ShowValueChange()
+    private void RefreshProgressBar()
     {
-        if (valueChangeCoroutine != null)
-        {
-            StopCoroutine(valueChangeCoroutine);
-        }
-
-        valueChangeCoroutine = StartCoroutine(ValueChangeCoroutine());
+        if (progressBar == null || maxValue <= 0) return;
+        progressBar.value = (float)(currentValue / maxValue);
     }
-
-    /// <summary>
-    /// Корутина показа изменения значения
-    /// </summary>
-    private IEnumerator ValueChangeCoroutine()
-    {
-        if (resourceValueText == null) yield break;
-
-        float difference = currentValue - previousValue;
-        bool isIncrease = difference > 0;
-
-        // Меняем цвет текста
-        Color originalColor = resourceValueText.color;
-        resourceValueText.color = isIncrease ? increaseColor : decreaseColor;
-
-        yield return new WaitForSeconds(0.5f);
-
-        // Возвращаем исходный цвет
-        resourceValueText.color = originalColor;
-
-        valueChangeCoroutine = null;
-    }
-
-    #endregion
-
-    #region Utility Methods
-
-    /// <summary>
-    /// Форматирование значения для отображения
-    /// </summary>
-    private string FormatValue(float value)
-    {
-        // Используем сокращения для больших чисел
-        if (value >= 1000000000f) // Миллиарды
-        {
-            return (value / 1000000000f).ToString("F1") + "B";
-        }
-        else if (value >= 1000000f) // Миллионы
-        {
-            return (value / 1000000f).ToString("F1") + "M";
-        }
-        else if (value >= 1000f) // Тысячи
-        {
-            return (value / 1000f).ToString("F1") + "K";
-        }
-
-        return value.ToString(valueFormat);
-    }
-
-    #endregion
-
-    #region Public Methods
-
-    /// <summary>
-    /// Установка кастомной иконки
-    /// </summary>
-    public void SetIcon(Sprite icon)
-    {
-        if (resourceIcon != null)
-        {
-            resourceIcon.sprite = icon;
-            resourceIcon.gameObject.SetActive(icon != null);
-        }
-    }
-
-    /// <summary>
-    /// Получение ResourceData этого UI элемента
-    /// </summary>
-    public ResourceData GetResourceData()
-    {
-        return resourceData;
-    }
-
-    #endregion
-
-    #region Unity Lifecycle
-
-    private void OnDestroy()
-    {
-        // Останавливаем все корутины при уничтожении
-        if (updateAnimationCoroutine != null)
-        {
-            StopCoroutine(updateAnimationCoroutine);
-        }
-
-        if (valueChangeCoroutine != null)
-        {
-            StopCoroutine(valueChangeCoroutine);
-        }
-    }
-
-    #endregion
 }

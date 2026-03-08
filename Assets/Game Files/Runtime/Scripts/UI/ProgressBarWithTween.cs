@@ -1,311 +1,217 @@
-﻿using UnityEngine;
-using UnityEngine.UI;
-using DG.Tweening;
+﻿using DG.Tweening;
 using TMPro;
+using UnityEngine;
+using UnityEngine.UI;
 
+/// <summary>
+/// Прогресс-бар для IdleAction.
+/// 
+/// АРХИТЕКТУРА ДЛЯ 50+ ПАНЕЛЕЙ:
+/// - fillAmount обновляется напрямую из action.GetProgress() в Update() — без DOTween-тика
+/// - DOTween используется ТОЛЬКО для flash-эффекта при завершении цикла (короткий, автоубивается)
+/// - Текст времени обновляется через throttle — не каждый кадр
+/// - Подписывается на IdleManager.OnCycleComplete — знает когда сбросить цикл
+/// </summary>
 public class ProgressBarWithTween : MonoBehaviour
 {
-    [SerializeField] private Image fillBar; // UI Image (fill type = Filled)
-    [SerializeField] private TextMeshProUGUI text_time;
+    // ──────────────────────────────────────────────
+    //  Inspector
+    // ──────────────────────────────────────────────
+    [Header("UI")]
+    [SerializeField] private Image fillBar;
+    [SerializeField] private TextMeshProUGUI textTime;
 
-    private IdleAction action;
-    private Tween activeTween;
-    private bool isDestroyed = false;
-    private bool isProcessingComplete = false; // Флаг для предотвращения рекурсии
+    [Header("Inactive State")]
+    [SerializeField] private GameObject inactiveOverlay;
+    [SerializeField] private Color inactiveColor = new Color(0.3f, 0.3f, 0.3f, 1f);
+    [SerializeField] private Color activeColor = Color.white;
 
-    // Отложенные обновления для апгрейдов
-    private IdleAction pendingAction;
-    private bool hasPendingUpgrade = false;
+    [Header("Cycle Flash")]
+    [SerializeField] private bool flashOnComplete = true;
+    [SerializeField] private Color flashColor = Color.yellow;
+    [SerializeField] private float flashDuration = 0.2f;
 
-    /// <summary>
-    /// Привязывает прогресс-бар к действию
-    /// </summary>
-    public void Setup(IdleAction a)
+    [Header("Performance")]
+    [Tooltip("Обновлять текст раз в N секунд. 0.1 = 10 раз/с, достаточно для читаемости.")]
+    [SerializeField, Min(0.05f)] private float textUpdateInterval = 0.1f;
+
+    // ──────────────────────────────────────────────
+    //  Состояние
+    // ──────────────────────────────────────────────
+    private IdleAction cachedAction;
+    private bool isActive;
+    private float textUpdateTimer;
+    private Tween flashTween;
+
+    // Флаг: был ли прогресс в прошлом кадре близко к 1
+    // Используется для детектирования завершения цикла без подписки
+    private float prevProgress = -1f;
+
+    // ──────────────────────────────────────────────
+    //  Public API
+    // ──────────────────────────────────────────────
+
+    public void Setup(IdleAction action)
     {
-        if (a == null)
+        if (action == null)
         {
-            Debug.LogWarning("ProgressBarWithTween: null action setup");
+            Debug.LogWarning($"[ProgressBar] {gameObject.name}: Setup получил null action");
             return;
         }
 
-        // Сохраняем текущий прогресс если это обновление того же действия
-        float previousProgress = 0f;
-        if (action != null && action == a)
-        {
-            previousProgress = action.timer / action.GetDuration();
-        }
+        // Отписываемся от старого action если был
+        UnsubscribeCycleEvent();
 
-        action = a;
-        isDestroyed = false;
-        isProcessingComplete = false;
+        cachedAction = action;
+        isActive = true;
+        prevProgress = action.GetProgress();
+        textUpdateTimer = 0f;
 
-        // Восстанавливаем прогресс если это было обновление
-        if (previousProgress > 0 && previousProgress < 1f)
-        {
-            action.timer = previousProgress * action.GetDuration();
-        }
+        SetFillColor(activeColor);
+        if (inactiveOverlay != null) inactiveOverlay.SetActive(false);
 
-        RefreshImmediately();
+        if (fillBar != null)
+            fillBar.fillAmount = prevProgress;
+
+        RefreshTimeText();
+        SubscribeCycleEvent();
     }
 
-    /// <summary>
-    /// Обновление после завершения текущего цикла действия
-    /// </summary>
-    public void SetupWithCycleComplete(IdleAction a)
+    public void SetInactive()
     {
-        if (a == null) return;
+        UnsubscribeCycleEvent();
 
-        // Останавливаем текущий твин
-        StopTween();
+        isActive = false;
+        cachedAction = null;
 
-        // Обновляем действие
-        action = a;
+        flashTween?.Kill();
 
-        // Сбрасываем таймер только если это НОВОЕ действие
-        if (pendingAction != a)
+        if (fillBar != null)
         {
-            action.timer = 0f;
+            fillBar.fillAmount = 0f;
+            SetFillColor(inactiveColor);
         }
 
-        isDestroyed = false;
-        isProcessingComplete = false;
-        pendingAction = null;
-        hasPendingUpgrade = false;
+        if (textTime != null)
+            textTime.text = "—";
 
-        // Запускаем с нуля
-        RefreshImmediately();
-        StartTween();
+        if(inactiveOverlay != null) inactiveOverlay.SetActive(true);
     }
 
-    private void OnDisable() => StopTween();
+    // ──────────────────────────────────────────────
+    //  Unity Lifecycle
+    // ──────────────────────────────────────────────
+
+    private void OnEnable()
+    {
+        if (isActive && cachedAction != null)
+        {
+            SubscribeCycleEvent();
+            prevProgress = cachedAction.GetProgress();
+            textUpdateTimer = 0f;
+
+            if (fillBar != null)
+                fillBar.fillAmount = prevProgress;
+
+            RefreshTimeText();
+        }
+    }
+
+    private void OnDisable()
+    {
+        UnsubscribeCycleEvent();
+        flashTween?.Kill();
+    }
 
     private void OnDestroy()
     {
-        isDestroyed = true;
-        StopTween();
+        UnsubscribeCycleEvent();
+        flashTween?.Kill();
     }
 
-    public void StopTween()
+    /// <summary>
+    /// Единственное место обновления визуала — прямое чтение из action.
+    /// Никакого DOTween для прогресса. Один Update = одна операция fillAmount.
+    /// </summary>
+    private void Update()
     {
-        if (activeTween != null && activeTween.IsActive())
-        {
-            activeTween.Kill();
-        }
-        activeTween = null;
+        if (!isActive || cachedAction == null || fillBar == null) return;
 
-        pendingAction = null;
-        hasPendingUpgrade = false;
-        isProcessingComplete = false;
-
-        if (fillBar != null) fillBar.fillAmount = 0f;
-        if (text_time != null) text_time.text = "0.0s";
-    }
-
-    public void RefreshImmediately()
-    {
-        if (action == null || fillBar == null || isDestroyed) return;
-
-        float progress = Mathf.Clamp01(action.timer / action.GetDuration());
+        float progress = cachedAction.GetProgress();
         fillBar.fillAmount = progress;
-        UpdateTimeText();
+
+        // Текст — с throttle, не каждый кадр
+        textUpdateTimer -= Time.deltaTime;
+        if (textUpdateTimer <= 0f)
+        {
+            textUpdateTimer = textUpdateInterval;
+            RefreshTimeText();
+        }
     }
 
-    public void StartTween()
+    // ──────────────────────────────────────────────
+    //  Cycle Complete
+    // ──────────────────────────────────────────────
+
+    private void SubscribeCycleEvent()
     {
-        // Защита от рекурсии
-        if (isProcessingComplete) return;
+        if (IdleManager.Instance != null)
+            IdleManager.Instance.OnCycleComplete += HandleCycleComplete;
+    }
 
-        if (action == null || fillBar == null || isDestroyed) return;
+    private void UnsubscribeCycleEvent()
+    {
+        if (IdleManager.Instance != null)
+            IdleManager.Instance.OnCycleComplete -= HandleCycleComplete;
+    }
 
-        StopTween();
+    private void HandleCycleComplete(IdleAction action, float produced)
+    {
+        if (action != cachedAction) return;
 
-        float currentProgress = Mathf.Clamp01(action.timer / action.GetDuration());
-        float remaining = Mathf.Max(0f, action.GetDuration() - action.timer);
+        PlayFlash();
+    }
 
-        // Если время истекло, просто обновляем и выходим
-        if (remaining <= 0.001f)
-        {
-            fillBar.fillAmount = 1f;
-            action.timer = action.GetDuration();
-            UpdateTimeText();
+    // ──────────────────────────────────────────────
+    //  Flash (единственное место где нужен DOTween)
+    // ──────────────────────────────────────────────
 
-            // Запускаем завершение без рекурсии
-            isProcessingComplete = true;
-            ProcessCycleComplete();
-            isProcessingComplete = false;
-            return;
-        }
+    private void PlayFlash()
+    {
+        if (!flashOnComplete || fillBar == null) return;
 
-        fillBar.fillAmount = currentProgress;
+        flashTween?.Kill();
 
-        activeTween = fillBar.DOFillAmount(1f, remaining)
-            .SetEase(Ease.Linear)
-            .OnUpdate(() =>
-            {
-                if (action != null && !isDestroyed)
-                {
-                    action.timer = fillBar.fillAmount * action.GetDuration();
-                    UpdateTimeText();
-                }
-            })
+        // SetColor → flashColor → activeColor. AutoKill = true по умолчанию.
+        flashTween = fillBar
+            .DOColor(flashColor, flashDuration * 0.5f)
+            .SetEase(Ease.OutQuad)
+            .SetLoops(2, LoopType.Yoyo)
             .OnComplete(() =>
             {
-                if (!isDestroyed)
-                {
-                    isProcessingComplete = true;
-                    OnTweenComplete();
-                    isProcessingComplete = false;
-                }
+                SetFillColor(activeColor);
+                flashTween = null;
             });
-
-        UpdateTimeText();
     }
 
-    private void UpdateTimeText()
+    // ──────────────────────────────────────────────
+    //  Helpers
+    // ──────────────────────────────────────────────
+
+    private void RefreshTimeText()
     {
-        if (text_time == null || action == null || isDestroyed) return;
+        if (textTime == null || cachedAction == null) return;
 
-        float timeRemaining = Mathf.Max(0f, action.GetDuration() - action.timer);
+        float remain = cachedAction.GetRemainingTime();
+        float duration = cachedAction.GetDuration();
 
-        if (timeRemaining <= 0.001f || action.level <= 0)
-        {
-            text_time.text = $"0.0s/{action.GetDuration():F1}s";
-            return;
-        }
-
-        if (timeRemaining >= 3600)
-        {
-            int hours = (int)(timeRemaining / 3600);
-            int minutes = (int)((timeRemaining % 3600) / 60);
-            text_time.text = $"{hours}h {minutes}m";
-        }
-        else if (timeRemaining >= 60)
-        {
-            int minutes = (int)(timeRemaining / 60);
-            int seconds = (int)(timeRemaining % 60);
-            text_time.text = $"{minutes}m {seconds}s";
-        }
-        else
-        {
-            text_time.text = $"{timeRemaining:F1}s";
-        }
-
-        text_time.text += $"/{action.GetDuration():F1}s";
+        textTime.text = remain >= 60f
+            ? $"{remain / 60f:F1}м / {duration / 60f:F1}м"
+            : $"{remain:F1}с / {duration:F1}с";
     }
 
-    private void OnTweenComplete()
+    private void SetFillColor(Color color)
     {
-        if (action == null || isDestroyed) return;
-
-        // Проверяем отложенное обновление ДО сброса таймера
-        if (hasPendingUpgrade && pendingAction != null)
-        {
-            action = pendingAction;
-            pendingAction = null;
-            hasPendingUpgrade = false;
-
-            // Устанавливаем таймер в 0 для нового действия
-            action.timer = 0f;
-
-            if (fillBar != null) fillBar.fillAmount = 0f;
-
-            // Запускаем новый твин
-            if (!isDestroyed && !isProcessingComplete)
-            {
-                StartTween();
-            }
-            return;
-        }
-
-        // Сбрасываем таймер для нового цикла (только если нет отложенного обновления)
-        action.timer = 0f;
-
-        if (fillBar != null) fillBar.fillAmount = 0f;
-
-        // Запускаем новый твин
-        if (!isDestroyed && !isProcessingComplete)
-        {
-            StartTween();
-        }
-    }
-
-    private void ProcessCycleComplete()
-    {
-        if (action == null || isDestroyed) return;
-
-        // Проверяем отложенное обновление
-        if (hasPendingUpgrade && pendingAction != null)
-        {
-            action = pendingAction;
-            pendingAction = null;
-            hasPendingUpgrade = false;
-
-            action.timer = 0f;
-        }
-        else
-        {
-            action.timer = 0f;
-        }
-
-        if (fillBar != null) fillBar.fillAmount = 0f;
-
-        // Запускаем новый твин
-        if (!isDestroyed)
-        {
-            StartTween();
-        }
-    }
-
-    public void UpdateProgress()
-    {
-        if (action == null || fillBar == null || isDestroyed || isProcessingComplete) return;
-
-        if (action.timer >= action.GetDuration() - 0.001f)
-        {
-            isProcessingComplete = true;
-            OnTweenComplete();
-            isProcessingComplete = false;
-        }
-        else if (activeTween == null || !activeTween.IsActive())
-        {
-            RefreshImmediately();
-        }
-    }
-
-    public void PauseTween()
-    {
-        activeTween?.Pause();
-    }
-
-    public void ResumeTween()
-    {
-        activeTween?.Play();
-    }
-
-    public float GetCurrentProgress()
-    {
-        return action == null ? 0f : Mathf.Clamp01(action.timer / action.GetDuration());
-    }
-
-    public void ForceUpdateProgress(float newTimer)
-    {
-        if (action == null || isProcessingComplete) return;
-
-        action.timer = newTimer;
-        RefreshImmediately();
-
-        if (activeTween != null && activeTween.IsActive())
-        {
-            StopTween();
-            StartTween();
-        }
-    }
-
-    private void Awake()
-    {
-        if (fillBar == null)
-            Debug.LogError($"ProgressBarWithTween на {gameObject.name}: fillBar не назначен!");
-        if (text_time == null)
-            Debug.LogError($"ProgressBarWithTween на {gameObject.name}: text_time не назначен!");
+        if (fillBar != null) fillBar.color = color;
     }
 }

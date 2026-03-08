@@ -20,16 +20,16 @@ public class ViewManager : MonoBehaviour
         CloseView();
     }
 
-    public void Open(Tab obj)
+    public void Open(TabLayout obj)
     {
-        closedTabManager.gameObject.SetActive(false);
+        closedTabManager?.gameObject.SetActive(false);
         tabManager.gameObject.SetActive(true);
         tabManager.OpenView(obj);
     }
 
     public void CloseView()
     {
-        closedTabManager.gameObject.SetActive(true);
+        closedTabManager?.gameObject.SetActive(true);
         tabManager.gameObject.SetActive(false);
     }
 }

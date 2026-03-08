@@ -6,9 +6,8 @@ public class ActionPurchaseLayoutSpawner : MonoBehaviour
 {
     [SerializeField] private GameObject actionPrefab;
     [SerializeField] private int initialPoolSize = 10;
-    [SerializeField] private float delayBetweenSpawns = 0.1f;
-    [SerializeField] private float fadeDuration = 0.3f;
-    [SerializeField] private Ease fadeEase = Ease.OutQuad;
+    [Space]
+    [SerializeField] private List<ProductionConfig> productionConfigList;
 
     private Stack<PurchaseSystem> pool = new();
     private List<PurchaseSystem> activeObjects = new();
@@ -67,29 +66,21 @@ public class ActionPurchaseLayoutSpawner : MonoBehaviour
 
     #region Public API
 
-    public void Spawn(List<PurchaseConfig> configs)
+    public void Spawn(List<ProductionConfig> configs)
     {
-        Clear();
-
-        spawnSequence?.Kill();
-        spawnSequence = DOTween.Sequence();
-
+        // Убираем анимации, просто включаем объекты
         foreach (var config in configs)
         {
-            spawnSequence.AppendCallback(() =>
-            {
-                var purchase = GetFromPool();
-                purchase.Setup(config);
-                activeObjects.Add(purchase);
+            var purchase = GetFromPool();
 
-                var canvasGroup = purchase.GetComponent<CanvasGroup>();
-                canvasGroup.alpha = 0f;
-                canvasGroup
-                    .DOFade(1f, fadeDuration)
-                    .SetEase(fadeEase);
-            });
+            // Сбрасываем состояние CanvasGroup в дефолт (на случай, если где-то была анимация)
+            var canvasGroup = purchase.GetComponent<CanvasGroup>();
+            canvasGroup.alpha = 1f;
+            canvasGroup.interactable = true;
+            canvasGroup.blocksRaycasts = true;
 
-            spawnSequence.AppendInterval(delayBetweenSpawns);
+            purchase.Setup(config);
+            activeObjects.Add(purchase);
         }
     }
 

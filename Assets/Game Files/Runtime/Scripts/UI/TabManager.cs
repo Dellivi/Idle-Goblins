@@ -3,9 +3,9 @@ using UnityEngine;
 
 public class TabManager : MonoBehaviour
 {
-    [SerializeField] private List<Tab> tabList = new List<Tab>();
-    private Tab currentTab;
-    public Tab CurrentTab { get => currentTab; protected set => currentTab = value; }
+    [SerializeField] private List<TabLayout> tabList = new List<TabLayout>();
+    private TabLayout currentTab;
+    public TabLayout CurrentTab { get => currentTab; protected set => currentTab = value; }
 
     private void Awake()
     {
@@ -30,7 +30,7 @@ public class TabManager : MonoBehaviour
         tabList.Clear();
 
         // Ищем в дочерних объектах
-        Tab[] childTabs = GetComponentsInChildren<Tab>(true);
+        TabLayout[] childTabs = GetComponentsInChildren<TabLayout>(true);
         tabList.AddRange(childTabs);
 
         Debug.Log($"RefreshTabList: Found {tabList.Count} tabs");
@@ -38,16 +38,16 @@ public class TabManager : MonoBehaviour
 
     public void CloseViews()
     {
-        foreach (Tab tab in tabList)
+        foreach (TabLayout tab in tabList)
         {
             if (tab != null)
                 tab.gameObject.SetActive(false);
         }
     }
 
-    public void OpenView(Tab obj)
+    public void OpenView(TabLayout obj)
     {
-        foreach (Tab tab in tabList)
+        foreach (TabLayout tab in tabList)
         {
             if (tab != null)
             {

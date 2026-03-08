@@ -1,333 +1,218 @@
-using System;
+п»їusing System;
 using System.Collections.Generic;
-using UnityEditor.Localization.Plugins.XLIFF.V12;
 using UnityEngine;
 
+[Serializable]
+public class ResourceGet
+{
+    public ResourceData resourceData;
+    public double initialAmount;
+}
+
 /// <summary>
-/// Пример ResourceManager для демонстрации интеграции
-/// Адаптируйте под свою существующую реализацию
+/// РњРµРЅРµРґР¶РµСЂ СЂРµСЃСѓСЂСЃРѕРІ. РҐСЂР°РЅРёС‚ РєРѕР»РёС‡РµСЃС‚РІРѕ РєР°Р¶РґРѕРіРѕ ResourceData.
+/// РСЃРїРѕР»СЊР·СѓРµС‚ double РґР»СЏ РїСЂРµРґРѕС‚РІСЂР°С‰РµРЅРёСЏ РїРѕС‚РµСЂРё С‚РѕС‡РЅРѕСЃС‚Рё РЅР° Р±РѕР»СЊС€РёС… С‡РёСЃР»Р°С… (idle-СЃРїРµС†РёС„РёРєР°).
 /// </summary>
 public class ResourceManager : MonoBehaviour
 {
-    #region Singleton
+    // в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
+    //  Singleton
+    // в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
+    public static ResourceManager Instance { get; private set; }
 
-    private static ResourceManager _instance;
-    public static ResourceManager Instance
-    {
-        get
-        {
-            if (_instance == null)
-            {
-                _instance = FindFirstObjectByType<ResourceManager>();
-                if (_instance == null)
-                {
-                    GameObject go = new GameObject("ResourceManager");
-                    _instance = go.AddComponent<ResourceManager>();
-                    DontDestroyOnLoad(go);
-                }
-            }
-            return _instance;
-        }
-    }
-
-    #endregion
-
+    // в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
+    //  Inspector
+    // в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
     [Header("Starting Resources")]
-    [SerializeField] private List<ResourceGet> startingResources = new List<ResourceGet>();
+    [SerializeField] private List<ResourceGet> startingResources = new();
 
-    // Словарь для хранения ресурсов по ResourceData
-    private Dictionary<ResourceData, float> resources = new Dictionary<ResourceData, float>();
+    [Header("Debug")]
+    [SerializeField] private bool verboseLog = false;
 
-    // События для ResourceStorageView
-    public event Action<ResourceData, float, float> OnResourceChanged;
-    public event Action<ResourceData, float> OnResourceAdded;
-    public event Action<ResourceData> OnResourceRemoved;
+    // в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
+    //  РЎРѕСЃС‚РѕСЏРЅРёРµ
+    // в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
+    private readonly Dictionary<ResourceData, double> resources = new();
 
-    #region Unity Lifecycle
+    // в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
+    //  РЎРѕР±С‹С‚РёСЏ
+    // в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
 
+    /// <summary>Р’С‹Р·С‹РІР°РµС‚СЃСЏ РїСЂРё Р»СЋР±РѕРј РёР·РјРµРЅРµРЅРёРё СЂРµСЃСѓСЂСЃР°. (resource, newAmount, delta)</summary>
+    public event Action<ResourceData, double, double> OnResourceChanged;
+
+    // в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
+    //  Unity Lifecycle
+    // в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
     private void Awake()
     {
-        if (_instance == null)
-        {
-            _instance = this;
-            DontDestroyOnLoad(gameObject);
-        }
-        else if (_instance != this)
-        {
-            Destroy(gameObject);
-        }
+        if (Instance != null && Instance != this) { Destroy(gameObject); return; }
+        Instance = this;
+        DontDestroyOnLoad(gameObject);
 
         InitializeResources();
     }
 
-    #endregion
-
-    #region Initialization
-
-    /// <summary>
-    /// Инициализация стартовых ресурсов
-    /// </summary>
+    // в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
+    //  Initialization
+    // в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
     private void InitializeResources()
     {
-        foreach (var resourceData in startingResources)
+        foreach (var entry in startingResources)
         {
-            if (resourceData.resourceData != null)
-            {
-                AddResource(resourceData.resourceData,resourceData.initialAmount);
-            }
+            if (entry.resourceData != null)
+                AddResource(entry.resourceData, entry.initialAmount);
             else
+                Debug.LogWarning("[ResourceManager] null ResourceData РІ СЃС‚Р°СЂС‚РѕРІС‹С… СЂРµСЃСѓСЂСЃР°С…");
+        }
+    }
+
+    // в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
+    //  Public API вЂ” Р§С‚РµРЅРёРµ
+    // в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
+
+    /// <summary>РЎРЅРёРјРѕРє РІСЃРµС… СЂРµСЃСѓСЂСЃРѕРІ. Р’РѕР·РІСЂР°С‰Р°РµС‚ РєРѕРїРёСЋ вЂ” Р±РµР·РѕРїР°СЃРЅРѕ РёС‚РµСЂРёСЂРѕРІР°С‚СЊ.</summary>
+    public Dictionary<ResourceData, double> GetAllResources()
+        => new(resources);
+
+    /// <summary>РўРµРєСѓС‰РµРµ РєРѕР»РёС‡РµСЃС‚РІРѕ СЂРµСЃСѓСЂСЃР° (double РґР»СЏ С‚РѕС‡РЅРѕСЃС‚Рё).</summary>
+    public double GetResource(ResourceData data)
+    {
+        if (data == null) return 0.0;
+        return resources.TryGetValue(data, out double amount) ? amount : 0.0;
+    }
+
+    /// <summary>Р•СЃС‚СЊ Р»Рё СЂРµСЃСѓСЂСЃ РІ СЂРµРµСЃС‚СЂРµ (С…РѕС‚СЏ Р±С‹ 0).</summary>
+    public bool HasResource(ResourceData data)
+        => data != null && resources.ContainsKey(data);
+
+    /// <summary>РњРѕР¶РЅРѕ Р»Рё РїРѕС‚СЂР°С‚РёС‚СЊ СѓРєР°Р·Р°РЅРЅРѕРµ РєРѕР»РёС‡РµСЃС‚РІРѕ.</summary>
+    public bool CanAfford(ResourceData data, double amount)
+        => data != null && amount >= 0.0 && GetResource(data) >= amount;
+
+    /// <summary>РњРѕР¶РЅРѕ Р»Рё РїРѕС‚СЂР°С‚РёС‚СЊ РЅР°Р±РѕСЂ СЂРµСЃСѓСЂСЃРѕРІ.</summary>
+    public bool CanAfford(IReadOnlyDictionary<ResourceData, float> costs)
+    {
+        if (costs == null) return true;
+        foreach (var kv in costs)
+            if (!CanAfford(kv.Key, kv.Value)) return false;
+        return true;
+    }
+
+    // в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
+    //  Public API вЂ” РР·РјРµРЅРµРЅРёРµ
+    // в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
+
+    /// <summary>Р”РѕР±Р°РІРёС‚СЊ СЂРµСЃСѓСЂСЃ (float РїРµСЂРµРіСЂСѓР·РєР° РґР»СЏ СЃРѕРІРјРµСЃС‚РёРјРѕСЃС‚Рё СЃ IdleManager).</summary>
+    public void AddResource(ResourceData data, float amount)
+        => AddResource(data, (double)amount);
+
+    /// <summary>Р”РѕР±Р°РІРёС‚СЊ СЂРµСЃСѓСЂСЃ.</summary>
+    public void AddResource(ResourceData data, double amount)
+    {
+        if (data == null || amount <= 0.0) return;
+
+        resources.TryGetValue(data, out double prev);
+        resources[data] = prev + amount;
+
+        OnResourceChanged?.Invoke(data, resources[data], amount);
+
+        if (verboseLog)
+            Debug.Log($"[ResourceManager] +{NumberFormatter.FormatSmart(amount)} {data.name} в†’ {NumberFormatter.FormatSmart(resources[data])}");
+    }
+
+    /// <summary>РџРѕС‚СЂР°С‚РёС‚СЊ СЂРµСЃСѓСЂСЃ. Р’РѕР·РІСЂР°С‰Р°РµС‚ false РµСЃР»Рё РЅРµРґРѕСЃС‚Р°С‚РѕС‡РЅРѕ.</summary>
+    public bool SpendResource(ResourceData data, double amount)
+    {
+        if (!CanAfford(data, amount))
+        {
+            if (verboseLog)
+                Debug.LogWarning($"[ResourceManager] РќРµРґРѕСЃС‚Р°С‚РѕС‡РЅРѕ {data?.name}: РЅСѓР¶РЅРѕ {amount:F2}, РµСЃС‚СЊ {GetResource(data):F2}");
+            return false;
+        }
+
+        double prev = resources[data];
+        resources[data] = prev - amount;
+
+        OnResourceChanged?.Invoke(data, resources[data], -amount);
+
+        if (verboseLog)
+            Debug.Log($"[ResourceManager] -{NumberFormatter.FormatSmart(amount)} {data.name} в†’ {NumberFormatter.FormatSmart(resources[data])}");
+
+        return true;
+    }
+
+    /// <summary>float-РїРµСЂРµРіСЂСѓР·РєР° РґР»СЏ СЃРѕРІРјРµСЃС‚РёРјРѕСЃС‚Рё СЃ СЃСѓС‰РµСЃС‚РІСѓСЋС‰РёРј РєРѕРґРѕРј.</summary>
+    public bool SpendResource(ResourceData data, float amount)
+        => SpendResource(data, (double)amount);
+
+    /// <summary>РџРѕС‚СЂР°С‚РёС‚СЊ РЅР°Р±РѕСЂ СЂРµСЃСѓСЂСЃРѕРІ. РђС‚РѕРјР°СЂРЅРѕ: Р»РёР±Рѕ РІСЃС‘, Р»РёР±Рѕ РЅРёС‡РµРіРѕ.</summary>
+    public bool SpendResources(IReadOnlyDictionary<ResourceData, float> costs)
+    {
+        if (!CanAfford(costs)) return false;
+        foreach (var kv in costs)
+            SpendResource(kv.Key, kv.Value);
+        return true;
+    }
+
+    /// <summary>РџСЂРёРЅСѓРґРёС‚РµР»СЊРЅРѕ РІС‹СЃС‚Р°РІРёС‚СЊ РєРѕР»РёС‡РµСЃС‚РІРѕ СЂРµСЃСѓСЂСЃР°.</summary>
+    public void SetResource(ResourceData data, double amount)
+    {
+        if (data == null) return;
+        amount = Math.Max(0.0, amount);
+
+        double prev = GetResource(data);
+        resources[data] = amount;
+
+        OnResourceChanged?.Invoke(data, amount, amount - prev);
+    }
+
+    // в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
+    //  Save / Load  (РѕРїС†РёРѕРЅР°Р»СЊРЅС‹Р№ РїСЂРёРјРµСЂ)
+    // в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
+    private const string SavePrefix = "ResourceManager_";
+
+    public void SaveResources()
+    {
+        foreach (var kv in resources)
+        {
+            if (kv.Key == null) continue;
+            PlayerPrefs.SetString(SavePrefix + kv.Key.name, kv.Value.ToString("R"));
+        }
+        PlayerPrefs.Save();
+    }
+
+    public void LoadResources()
+    {
+        foreach (var kv in new Dictionary<ResourceData, double>(resources))
+        {
+            if (kv.Key == null) continue;
+            string key = SavePrefix + kv.Key.name;
+            if (PlayerPrefs.HasKey(key) &&
+                double.TryParse(PlayerPrefs.GetString(key), out double val))
             {
-                Debug.LogWarning("[ResourceManager] Найден null ResourceData в стартовых ресурсах");
+                resources[kv.Key] = val;
             }
         }
-
-        Debug.Log($"[ResourceManager] Инициализировано {resources.Count} ресурсов");
     }
 
-    #endregion
-
-    #region Public Methods
-
-    /// <summary>
-    /// Получение количества ресурса
-    /// </summary>
-    public float GetResource(ResourceData resourceData)
+    // в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
+    //  Debug
+    // в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
+    [ContextMenu("Log All Resources")]
+    private void LogAll()
     {
-        if (resourceData == null) return 0f;
-        return resources.TryGetValue(resourceData, out float amount) ? amount : 0f;
+        Debug.Log($"[ResourceManager] Р’СЃРµРіРѕ: {resources.Count} СЂРµСЃСѓСЂСЃ(Р°)");
+        foreach (var kv in resources)
+            Debug.Log($"  {kv.Key?.name ?? "null"}: {NumberFormatter.FormatSmart(kv.Value)}");
     }
 
-    /// <summary>
-    /// Получение всех ресурсов
-    /// </summary>
-    public Dictionary<ResourceData, float> GetAllResources()
-    {
-        return new Dictionary<ResourceData, float>(resources);
-    }
-
-    /// <summary>
-    /// Добавление ресурса
-    /// </summary>
-    public void AddResource(ResourceData resourceData, float amount)
-    {
-        if (resourceData == null)
-        {
-            Debug.LogWarning("[ResourceManager] Попытка добавить null ResourceData");
-            return;
-        }
-
-        if (amount <= 0) return;
-
-        float previousAmount = GetResource(resourceData);
-
-        if (resources.ContainsKey(resourceData))
-        {
-            resources[resourceData] += amount;
-        }
-        else
-        {
-            resources[resourceData] = amount;
-            OnResourceAdded?.Invoke(resourceData, amount);
-            OnResourceChanged?.Invoke(resourceData, amount, 0);
-            Debug.Log($"[ResourceManager] Добавлен новый ресурс {resourceData.name}: {NumberFormatter.FormatSmart(amount)}");
-            return;
-        }
-
-        float newAmount = resources[resourceData];
-        OnResourceChanged?.Invoke(resourceData, newAmount, previousAmount);
-
-        Debug.Log($"[ResourceManager] Добавлено {NumberFormatter.FormatSmart(amount)} {resourceData.name}. Итого: {NumberFormatter.FormatSmart(newAmount)}");
-    }
-
-    /// <summary>
-    /// Трата ресурса
-    /// </summary>
-    public bool SpendResource(ResourceData resourceData, float amount)
-    {
-        if (resourceData == null)
-        {
-            Debug.LogWarning("[ResourceManager] Попытка потратить null ResourceData");
-            return false;
-        }
-
-        if (amount <= 0)
-        {
-            Debug.LogWarning("[ResourceManager] Попытка потратить отрицательное количество ресурса");
-            return false;
-        }
-
-        if (!CanAfford(resourceData, amount))
-        {
-            Debug.LogWarning($"[ResourceManager] Недостаточно {resourceData.name}. Требуется: {NumberFormatter.FormatSmart(amount)}, доступно: {NumberFormatter.FormatSmart(GetResource(resourceData))}");
-            return false;
-        }
-
-        float previousAmount = resources[resourceData];
-        resources[resourceData] -= amount;
-        float newAmount = resources[resourceData];
-
-        OnResourceChanged?.Invoke(resourceData, newAmount, previousAmount);
-
-        Debug.Log($"[ResourceManager] Потрачено {NumberFormatter.FormatSmart(amount)} {resourceData.name}. Осталось: {NumberFormatter.FormatSmart(newAmount)}");
-        return true;
-    }
-
-    /// <summary>
-    /// Установка точного количества ресурса
-    /// </summary>
-    public void SetResource(ResourceData resourceData, float amount)
-    {
-        if (resourceData == null)
-        {
-            Debug.LogWarning("[ResourceManager] Попытка установить null ResourceData");
-            return;
-        }
-
-        if (amount < 0)
-        {
-            Debug.LogWarning("[ResourceManager] Попытка установить отрицательное количество ресурса");
-            amount = 0;
-        }
-
-        float previousAmount = GetResource(resourceData);
-
-        if (!resources.ContainsKey(resourceData))
-        {
-            resources[resourceData] = amount;
-            OnResourceAdded?.Invoke(resourceData, amount);
-            Debug.Log($"[ResourceManager] Добавлен новый ресурс {resourceData.name}: {NumberFormatter.FormatSmart(amount)}");
-            return;
-        }
-
-        resources[resourceData] = amount;
-        OnResourceChanged?.Invoke(resourceData, amount, previousAmount);
-
-        Debug.Log($"[ResourceManager] Установлено {resourceData.name} = {NumberFormatter.FormatSmart(amount)}");
-    }
-
-    /// <summary>
-    /// Проверка достаточности ресурса
-    /// </summary>
-    public bool CanAfford(ResourceData resourceData, float amount)
-    {
-        if (resourceData == null || amount <= 0)
-            return false;
-
-        return GetResource(resourceData) >= amount;
-    }
-
-    /// <summary>
-    /// Проверка достаточности нескольких ресурсов
-    /// </summary>
-    public bool CanAfford(Dictionary<ResourceData, float> costs)
-    {
-        if (costs == null || costs.Count == 0)
-            return true;
-
-        foreach (var cost in costs)
-        {
-            if (!CanAfford(cost.Key, cost.Value))
-                return false;
-        }
-        return true;
-    }
-
-    /// <summary>
-    /// Трата нескольких ресурсов
-    /// </summary>
-    public bool SpendResources(Dictionary<ResourceData, float> costs)
-    {
-        if (!CanAfford(costs))
-            return false;
-
-        foreach (var cost in costs)
-        {
-            SpendResource(cost.Key, cost.Value);
-        }
-
-        return true;
-    }
-
-    /// <summary>
-    /// Удаление ресурса
-    /// </summary>
-    public void RemoveResource(ResourceData resourceData)
-    {
-        if (resourceData == null) return;
-
-        if (resources.Remove(resourceData))
-        {
-            OnResourceRemoved?.Invoke(resourceData);
-            Debug.Log($"[ResourceManager] Удален ресурс: {resourceData.name}");
-        }
-    }
-
-    /// <summary>
-    /// Проверка существования ресурса
-    /// </summary>
-    public bool HasResource(ResourceData resourceData)
-    {
-        if (resourceData == null) return false;
-        return resources.ContainsKey(resourceData);
-    }
-
-    #endregion
-
-    #region Debug Methods
-
-    /// <summary>
-    /// Добавление ресурсов для тестирования (только в режиме разработки)
-    /// </summary>
-    [ContextMenu("Add Test Resources")]
-    private void AddTestResources()
+    [ContextMenu("Add 1000 to All (Debug)")]
+    private void DebugAddAll()
     {
         if (!Application.isPlaying) return;
-
-        // Для тестирования нужно будет создать ResourceData объекты
-        foreach (var resourceGet in startingResources)
-        {
-            if (resourceGet.resourceData != null)
-            {
-                AddResource(resourceGet.resourceData, 100);
-            }
-        }
-    }
-
-    /// <summary>
-    /// Вывод всех ресурсов в консоль
-    /// </summary>
-    [ContextMenu("Log All Resources")]
-    private void LogAllResources()
-    {
-        Debug.Log("=== Все ресурсы ===");
-        foreach (var resource in resources)
-        {
-            string resourceName = resource.Key != null ? resource.Key.name : "Unknown";
-            Debug.Log($"{resourceName}: {resource.Value}");
-        }
-    }
-
-    #endregion
-}
-
-/// <summary>
-/// Структура данных для стартовых ресурсов
-/// </summary>
-[System.Serializable]
-public class ResourceGet
-{
-    public ResourceData resourceData;
-    public int initialAmount;
-
-    public ResourceGet(ResourceData data, int amount)
-    {
-        resourceData = data;
-        initialAmount = amount;
-    }
-
-    public ResourceGet(ResourceGet resourceGet)
-    {
-        resourceData = resourceGet.resourceData;
-        initialAmount = resourceGet.initialAmount;
+        foreach (var entry in startingResources)
+            if (entry.resourceData != null)
+                AddResource(entry.resourceData, 1000);
     }
 }

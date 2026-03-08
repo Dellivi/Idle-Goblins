@@ -1,405 +1,231 @@
-using System;
+п»їusing System;
 using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.UI;
 
 /// <summary>
-/// Отображает все ресурсы и автоматически обновляется при их изменении
+/// РћС‚РѕР±СЂР°Р¶Р°РµС‚ РІСЃРµ СЂРµСЃСѓСЂСЃС‹ РІ РєРѕРЅС‚РµР№РЅРµСЂРµ Рё СЂРµР°РєС‚РёРІРЅРѕ РѕР±РЅРѕРІР»СЏРµС‚СЃСЏ С‡РµСЂРµР· СЃРѕР±С‹С‚РёСЏ ResourceManager.
+/// РќРµ РёСЃРїРѕР»СЊР·СѓРµС‚ Update вЂ” С‚РѕР»СЊРєРѕ event-driven РѕР±РЅРѕРІР»РµРЅРёСЏ.
 /// </summary>
 public class ResourceStorageView : MonoBehaviour
 {
-    [Header("UI Settings")]
+    // в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
+    //  Inspector
+    // в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
+    [Header("References")]
     [SerializeField] private Transform resourceContainer;
     [SerializeField] private GameObject resourceItemPrefab;
 
-    // Словарь для быстрого доступа к UI элементам ресурсов
-    private Dictionary<ResourceData, ResourceItemUI> resourceUIItems = new Dictionary<ResourceData, ResourceItemUI>();
+    // в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
+    //  РЎРѕСЃС‚РѕСЏРЅРёРµ
+    // в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
+    private readonly Dictionary<ResourceData, ResourceItemUI> itemMap = new();
+    private readonly Dictionary<ResourceData, double> cachedValues = new();
 
-    // Кэш предыдущих значений для оптимизации обновлений
-    private Dictionary<ResourceData, float> previousResourceValues = new Dictionary<ResourceData, float>();
+    // в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
+    //  РЎРѕР±С‹С‚РёСЏ
+    // в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
 
-    // Ссылка на менеджер ресурсов
-    private ResourceManager resourceManager;
+    /// <summary>Р’С‹Р·С‹РІР°РµС‚СЃСЏ РїРѕСЃР»Рµ РѕР±РЅРѕРІР»РµРЅРёСЏ UI РєРѕРЅРєСЂРµС‚РЅРѕРіРѕ СЂРµСЃСѓСЂСЃР°.</summary>
+    public event Action<ResourceData, double> OnResourceUIUpdated;
 
-    /// <summary>
-    /// Событие, вызываемое при обновлении UI ресурса
-    /// </summary>
-    public event Action<ResourceData, float> OnResourceUIUpdated;
-
-    #region Unity Lifecycle
-
-    private void OnEnable()
-    {
-        if (resourceManager == null) return;
-        SubscribeToResourceEvents();
-    }
-
+    // в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
+    //  Unity Lifecycle
+    // в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
     private void Awake()
     {
-        ValidateComponents();
-        InitializeResourceManager();
+        if (!ValidateReferences()) enabled = false;
     }
 
     private void Start()
     {
-        SetupInitialResources();
+        SubscribeEvents();
+        BuildInitialUI();
     }
 
-    private void OnDestroy()
+    private void OnEnable()
     {
-        UnsubscribeFromResourceEvents();
+        // РџРµСЂРµРїРѕРґРїРёСЃС‹РІР°РµРјСЃСЏ РїСЂРё РїРѕРІС‚РѕСЂРЅРѕРј РІРєР»СЋС‡РµРЅРёРё (РїРѕСЃР»Рµ OnDisable)
+        SubscribeEvents();
     }
 
     private void OnDisable()
     {
-        UnsubscribeFromResourceEvents();
+        UnsubscribeEvents();
     }
 
-    #endregion
+    private void OnDestroy()
+    {
+        UnsubscribeEvents();
+    }
 
-    #region Initialization
-
-    /// <summary>
-    /// Проверка необходимых компонентов
-    /// </summary>
-    private void ValidateComponents()
+    // в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
+    //  Initialization
+    // в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
+    private bool ValidateReferences()
     {
         if (resourceContainer == null)
         {
-            Debug.LogError($"[{nameof(ResourceStorageView)}] Resource Container не назначен!");
-            return;
+            Debug.LogError($"[ResourceStorageView] resourceContainer РЅРµ РЅР°Р·РЅР°С‡РµРЅ!", this);
+            return false;
         }
-
         if (resourceItemPrefab == null)
         {
-            Debug.LogError($"[{nameof(ResourceStorageView)}] Resource Item Prefab не назначен!");
+            Debug.LogError($"[ResourceStorageView] resourceItemPrefab РЅРµ РЅР°Р·РЅР°С‡РµРЅ!", this);
+            return false;
+        }
+        if (resourceItemPrefab.GetComponent<ResourceItemUI>() == null)
+        {
+            Debug.LogError($"[ResourceStorageView] Р’ РїСЂРµС„Р°Р±Рµ РѕС‚СЃСѓС‚СЃС‚РІСѓРµС‚ ResourceItemUI!", this);
+            return false;
+        }
+        return true;
+    }
+
+    private void BuildInitialUI()
+    {
+        if (ResourceManager.Instance == null) return;
+
+        // GetAllResources РІРѕР·РІСЂР°С‰Р°РµС‚ СЃРЅРёРјРѕРє вЂ” РёС‚РµСЂРёСЂСѓРµРј Р±РµР·РѕРїР°СЃРЅРѕ
+        var snapshot = ResourceManager.Instance.GetAllResources();
+        foreach (var kv in snapshot)
+        {
+            if (kv.Key != null)
+                CreateItem(kv.Key, kv.Value);
+        }
+    }
+
+    // в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
+    //  Event Subscription
+    // в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
+    private bool _subscribed;
+
+    private void SubscribeEvents()
+    {
+        if (_subscribed || ResourceManager.Instance == null) return;
+        ResourceManager.Instance.OnResourceChanged += HandleResourceChanged;
+        _subscribed = true;
+    }
+
+    private void UnsubscribeEvents()
+    {
+        if (!_subscribed || ResourceManager.Instance == null) return;
+        ResourceManager.Instance.OnResourceChanged -= HandleResourceChanged;
+        _subscribed = false;
+    }
+
+    // в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
+    //  Event Handlers
+    // в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
+
+    // РЎРёРіРЅР°С‚СѓСЂР° СЃРѕРІРїР°РґР°РµС‚ СЃ ResourceManager: (ResourceData, double newAmount, double delta)
+    private void HandleResourceChanged(ResourceData data, double newAmount, double delta)
+    {
+        if (data == null) return;
+
+        if (!itemMap.ContainsKey(data))
+        {
+            // Р РµСЃСѓСЂСЃ РїРѕСЏРІРёР»СЃСЏ РІРїРµСЂРІС‹Рµ вЂ” СЃРѕР·РґР°С‘Рј UI
+            CreateItem(data, newAmount);
             return;
         }
 
-        // Проверяем, что в префабе есть компонент ResourceItemUI
-        ResourceItemUI prefabComponent = resourceItemPrefab.GetComponent<ResourceItemUI>();
-        if (prefabComponent == null)
-        {
-            Debug.LogError($"[{nameof(ResourceStorageView)}] В префабе resourceItemPrefab отсутствует компонент ResourceItemUI!");
-        }
+        UpdateItem(data, newAmount);
     }
 
-    /// <summary>
-    /// Инициализация менеджера ресурсов
-    /// </summary>
-    private void InitializeResourceManager()
+    // в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
+    //  UI Management
+    // в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
+    private void CreateItem(ResourceData data, double value)
     {
-        resourceManager = ResourceManager.Instance;
-        if (resourceManager == null)
+        if (itemMap.ContainsKey(data)) return;
+
+        var go = Instantiate(resourceItemPrefab, resourceContainer);
+        var ui = go.GetComponent<ResourceItemUI>();
+
+        if (ui == null)
         {
-            Debug.LogError($"[{nameof(ResourceStorageView)}] ResourceManager не найден!");
+            Debug.LogError("[ResourceStorageView] ResourceItemUI РЅРµ РЅР°Р№РґРµРЅ РІ СЃРѕР·РґР°РЅРЅРѕРј РѕР±СЉРµРєС‚Рµ!", go);
+            Destroy(go);
+            return;
         }
+
+        ui.Initialize(data, value);
+        itemMap[data] = ui;
+        cachedValues[data] = value;
     }
 
-    /// <summary>
-    /// Настройка начальных ресурсов
-    /// </summary>
-    private void SetupInitialResources()
+    private void UpdateItem(ResourceData data, double newValue)
     {
-        if (resourceManager == null) return;
+        if (!itemMap.TryGetValue(data, out var ui)) return;
 
-        var allResources = resourceManager.GetAllResources();
+        // РћР±РЅРѕРІР»СЏРµРј С‚РѕР»СЊРєРѕ РµСЃР»Рё Р·РЅР°С‡РµРЅРёРµ СЂРµР°Р»СЊРЅРѕ РёР·РјРµРЅРёР»РѕСЃСЊ
+        if (cachedValues.TryGetValue(data, out double prev) && prev == newValue) return;
 
-        foreach (var resource in allResources)
+        cachedValues[data] = newValue;
+        ui.UpdateValue(newValue);
+        ui.PlayUpdateAnimation();
+
+        OnResourceUIUpdated?.Invoke(data, newValue);
+    }
+
+    private void RemoveItem(ResourceData data)
+    {
+        if (!itemMap.TryGetValue(data, out var ui)) return;
+
+        itemMap.Remove(data);
+        cachedValues.Remove(data);
+
+        if (ui != null)
+            Destroy(ui.gameObject);
+    }
+
+    // в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
+    //  Public API
+    // в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
+
+    /// <summary>РџСЂРёРЅСѓРґРёС‚РµР»СЊРЅРѕ РїРµСЂРµСЂРёСЃРѕРІР°С‚СЊ РІСЃРµ СЌР»РµРјРµРЅС‚С‹ РёР· ResourceManager.</summary>
+    public void RefreshAll()
+    {
+        if (ResourceManager.Instance == null) return;
+        var snapshot = ResourceManager.Instance.GetAllResources();
+        foreach (var kv in snapshot)
         {
-            if (resource.Key != null)
-            {
-                CreateResourceUI(resource.Key, resource.Value);
-                previousResourceValues[resource.Key] = resource.Value;
-            }
+            if (kv.Key == null) continue;
+            if (itemMap.ContainsKey(kv.Key))
+                UpdateItem(kv.Key, kv.Value);
             else
-            {
-                Debug.LogWarning($"[{nameof(ResourceStorageView)}] Найден null ResourceData в начальных ресурсах!");
-            }
-        }
-
-        Debug.Log($"[{nameof(ResourceStorageView)}] Инициализировано {resourceUIItems.Count} UI элементов ресурсов");
-    }
-
-    #endregion
-
-    #region Event Handling
-
-    /// <summary>
-    /// Подписка на события изменения ресурсов
-    /// </summary>
-    private void SubscribeToResourceEvents()
-    {
-        if (resourceManager == null) return;
-
-        resourceManager.OnResourceChanged += HandleResourceChanged;
-        resourceManager.OnResourceAdded += HandleResourceAdded;
-        resourceManager.OnResourceRemoved += HandleResourceRemoved;
-
-        Debug.Log($"[{nameof(ResourceStorageView)}] Подписались на события ResourceManager");
-    }
-
-    /// <summary>
-    /// Отписка от событий
-    /// </summary>
-    private void UnsubscribeFromResourceEvents()
-    {
-        if (resourceManager == null) return;
-
-        resourceManager.OnResourceChanged -= HandleResourceChanged;
-        resourceManager.OnResourceAdded -= HandleResourceAdded;
-        resourceManager.OnResourceRemoved -= HandleResourceRemoved;
-
-        Debug.Log($"[{nameof(ResourceStorageView)}] Отписались от событий ResourceManager");
-    }
-
-    /// <summary>
-    /// Обработка изменения ресурса
-    /// </summary>
-    private void HandleResourceChanged(ResourceData resourceData, float newValue, float previousValue)
-    {
-        if (resourceData == null)
-        {
-            Debug.LogWarning($"[{nameof(ResourceStorageView)}] Получен null ResourceData в HandleResourceChanged");
-            return;
-        }
-
-        UpdateResourceUI(resourceData, newValue);
-        OnResourceUIUpdated?.Invoke(resourceData, newValue);
-    }
-
-    /// <summary>
-    /// Обработка добавления нового ресурса
-    /// </summary>
-    private void HandleResourceAdded(ResourceData resourceData, float initialValue)
-    {
-        if (resourceData == null)
-        {
-            Debug.LogWarning($"[{nameof(ResourceStorageView)}] Получен null ResourceData в HandleResourceAdded");
-            return;
-        }
-
-        CreateResourceUI(resourceData, initialValue);
-    }
-
-    /// <summary>
-    /// Обработка удаления ресурса
-    /// </summary>
-    private void HandleResourceRemoved(ResourceData resourceData)
-    {
-        if (resourceData == null)
-        {
-            Debug.LogWarning($"[{nameof(ResourceStorageView)}] Получен null ResourceData в HandleResourceRemoved");
-            return;
-        }
-
-        RemoveResourceUI(resourceData);
-    }
-
-    #endregion
-
-    #region UI Management
-
-    /// <summary>
-    /// Создание UI элемента для ресурса
-    /// </summary>
-    private void CreateResourceUI(ResourceData resourceData, float value)
-    {
-        if (resourceData == null)
-        {
-            Debug.LogWarning($"[{nameof(ResourceStorageView)}] Попытка создать UI для null ResourceData");
-            return;
-        }
-
-        if (resourceUIItems.ContainsKey(resourceData))
-        {
-            Debug.LogWarning($"[{nameof(ResourceStorageView)}] UI для ресурса {resourceData.name} уже существует!");
-            return;
-        }
-
-        GameObject itemObject = Instantiate(resourceItemPrefab, resourceContainer);
-        ResourceItemUI itemUI = itemObject.GetComponent<ResourceItemUI>();
-
-        if (itemUI == null)
-        {
-            Debug.LogError($"[{nameof(ResourceStorageView)}] В префабе отсутствует компонент ResourceItemUI!");
-            Destroy(itemObject);
-            return;
-        }
-
-        itemUI.Initialize(resourceData, value);
-        resourceUIItems[resourceData] = itemUI;
-
-        // Подписываемся на событие изменения значения UI элемента
-        itemUI.OnValueChanged += OnResourceItemValueChanged;
-
-        Debug.Log($"[{nameof(ResourceStorageView)}] Создан UI для ресурса: {resourceData.name}");
-    }
-
-    /// <summary>
-    /// Обновление UI элемента ресурса
-    /// </summary>
-    private void UpdateResourceUI(ResourceData resourceData, float newValue)
-    {
-        if (resourceData == null) return;
-
-        if (!resourceUIItems.TryGetValue(resourceData, out ResourceItemUI itemUI))
-        {
-            Debug.LogWarning($"[{nameof(ResourceStorageView)}] UI для ресурса {resourceData.name} не найден! Создаем новый.");
-            CreateResourceUI(resourceData, newValue);
-            return;
-        }
-
-        // Обновляем только если значение изменилось
-        if (!previousResourceValues.TryGetValue(resourceData, out float previousValue) ||
-            !Mathf.Approximately(previousValue, newValue))
-        {
-            itemUI.UpdateValue(newValue);
-            previousResourceValues[resourceData] = newValue;
-
-            // Анимация изменения (опционально)
-            itemUI.PlayUpdateAnimation();
+                CreateItem(kv.Key, kv.Value);
         }
     }
 
-    /// <summary>
-    /// Удаление UI элемента ресурса
-    /// </summary>
-    private void RemoveResourceUI(ResourceData resourceData)
+    /// <summary>РЈРЅРёС‡С‚РѕР¶РёС‚СЊ РІСЃРµ UI-СЌР»РµРјРµРЅС‚С‹ Рё РѕС‡РёСЃС‚РёС‚СЊ СЃРѕСЃС‚РѕСЏРЅРёРµ.</summary>
+    public void Clear()
     {
-        if (resourceData == null) return;
+        foreach (var ui in itemMap.Values)
+            if (ui != null) Destroy(ui.gameObject);
 
-        if (!resourceUIItems.TryGetValue(resourceData, out ResourceItemUI itemUI))
-        {
-            return;
-        }
-
-        // Отписываемся от события
-        if (itemUI != null)
-        {
-            itemUI.OnValueChanged -= OnResourceItemValueChanged;
-        }
-
-        resourceUIItems.Remove(resourceData);
-        previousResourceValues.Remove(resourceData);
-
-        if (itemUI != null && itemUI.gameObject != null)
-        {
-            Destroy(itemUI.gameObject);
-        }
-
-        Debug.Log($"[{nameof(ResourceStorageView)}] Удален UI для ресурса: {resourceData.name}");
+        itemMap.Clear();
+        cachedValues.Clear();
     }
 
-    /// <summary>
-    /// Обработка изменения значения в UI элементе
-    /// </summary>
-    private void OnResourceItemValueChanged(ResourceData resourceData, float newValue)
+    /// <summary>РџРѕР»СѓС‡РёС‚СЊ UI-СЌР»РµРјРµРЅС‚ РґР»СЏ РєРѕРЅРєСЂРµС‚РЅРѕРіРѕ СЂРµСЃСѓСЂСЃР°.</summary>
+    public ResourceItemUI GetItem(ResourceData data)
     {
-        // Можно добавить дополнительную логику при изменении значения в UI
+        itemMap.TryGetValue(data, out var ui);
+        return ui;
     }
 
-    #endregion
-
-    #region Public Methods
-
-    /// <summary>
-    /// Принудительное обновление всех UI элементов
-    /// </summary>
-    public void RefreshAllResourceUI()
+    /// <summary>РџРѕРєР°Р·Р°С‚СЊ / СЃРєСЂС‹С‚СЊ UI РєРѕРЅРєСЂРµС‚РЅРѕРіРѕ СЂРµСЃСѓСЂСЃР°.</summary>
+    public void SetVisible(ResourceData data, bool visible)
     {
-        if (resourceManager == null) return;
-
-        var allResources = resourceManager.GetAllResources();
-
-        foreach (var resource in allResources)
-        {
-            if (resource.Key != null)
-            {
-                UpdateResourceUI(resource.Key, resource.Value);
-            }
-        }
-
-        Debug.Log($"[{nameof(ResourceStorageView)}] Обновлены все UI элементы ресурсов");
+        if (itemMap.TryGetValue(data, out var ui))
+            ui.gameObject.SetActive(visible);
     }
 
-    /// <summary>
-    /// Очистка всех UI элементов
-    /// </summary>
-    public void ClearAllResourceUI()
+    /// <summary>РџРµСЂРµРґР°С‚СЊ РјР°РєСЃРёРјР°Р»СЊРЅРѕРµ Р·РЅР°С‡РµРЅРёРµ РІ UI-СЌР»РµРјРµРЅС‚ (РґР»СЏ РїСЂРѕРіСЂРµСЃСЃ-Р±Р°СЂРѕРІ РІРЅСѓС‚СЂРё).</summary>
+    public void SetMaxValue(ResourceData data, double maxValue)
     {
-        foreach (var item in resourceUIItems.Values)
-        {
-            if (item != null)
-            {
-                item.OnValueChanged -= OnResourceItemValueChanged;
-
-                if (item.gameObject != null)
-                {
-                    Destroy(item.gameObject);
-                }
-            }
-        }
-
-        resourceUIItems.Clear();
-        previousResourceValues.Clear();
-
-        Debug.Log($"[{nameof(ResourceStorageView)}] Очищены все UI элементы ресурсов");
+        if (itemMap.TryGetValue(data, out var ui))
+            ui.SetMaxValue(maxValue);
     }
-
-    /// <summary>
-    /// Получение UI элемента ресурса по ResourceData
-    /// </summary>
-    public ResourceItemUI GetResourceUI(ResourceData resourceData)
-    {
-        if (resourceData == null) return null;
-
-        resourceUIItems.TryGetValue(resourceData, out ResourceItemUI itemUI);
-        return itemUI;
-    }
-
-    /// <summary>
-    /// Проверка существования UI для ресурса
-    /// </summary>
-    public bool HasResourceUI(ResourceData resourceData)
-    {
-        if (resourceData == null) return false;
-        return resourceUIItems.ContainsKey(resourceData);
-    }
-
-    /// <summary>
-    /// Получение всех UI элементов ресурсов
-    /// </summary>
-    public Dictionary<ResourceData, ResourceItemUI> GetAllResourceUI()
-    {
-        return new Dictionary<ResourceData, ResourceItemUI>(resourceUIItems);
-    }
-
-    /// <summary>
-    /// Установка видимости конкретного ресурса
-    /// </summary>
-    public void SetResourceUIVisible(ResourceData resourceData, bool visible)
-    {
-        if (resourceData == null) return;
-
-        if (resourceUIItems.TryGetValue(resourceData, out ResourceItemUI itemUI))
-        {
-            itemUI.gameObject.SetActive(visible);
-        }
-    }
-
-    /// <summary>
-    /// Установка максимального значения для конкретного ресурса (для прогресс-бара)
-    /// </summary>
-    public void SetResourceMaxValue(ResourceData resourceData, float maxValue)
-    {
-        if (resourceData == null) return;
-
-        if (resourceUIItems.TryGetValue(resourceData, out ResourceItemUI itemUI))
-        {
-            itemUI.SetMaxValue(maxValue);
-        }
-    }
-
-    #endregion
 }

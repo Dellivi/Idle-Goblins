@@ -2,287 +2,283 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-[Serializable]
-public class IdleAction
+/// <summary>
+/// Центральный менеджер idle-производства.
+///
+/// ОПТИМИЗАЦИИ ДЛЯ 50+ ДЕЙСТВИЙ:
+/// - Все AddResource за кадр буферизируются, событие OnResourceChanged стреляет
+///   один раз в LateUpdate — вместо N раз в Update
+/// - OnCycleComplete собирается в список за кадр, диспатчится после тиков —
+///   без вызовов из середины цикла
+/// - Никаких аллокаций в горячем пути (Update/LateUpdate)
+/// </summary>
+public class IdleManager : MonoBehaviour
 {
-    public string actionId;
-    public string categoryId;
-    public ResourceData resource;
-    public PurchaseConfig config;
-    public int level;
+    // ──────────────────────────────────────────────
+    //  Singleton
+    // ──────────────────────────────────────────────
+    public static IdleManager Instance { get; private set; }
 
-    [NonSerialized] public float timer; // внутренний таймер
+    // ──────────────────────────────────────────────
+    //  Inspector
+    // ──────────────────────────────────────────────
+    [Header("Balance")]
+    [SerializeField, Min(0.01f)] private float globalMultiplier = 1f;
 
-    public float GetProductionPerCycle(float globalMultiplier)
+    [Header("Offline")]
+    [SerializeField] private bool applyOfflineProgress = true;
+    [SerializeField, Min(0f)] private float maxOfflineSeconds = 8f * 3600f;
+    [SerializeField, Range(0f, 1f)] private float offlineEfficiency = 0.5f;
+
+    [Header("Debug")]
+    [SerializeField] private bool verboseLog = false;
+
+    // ──────────────────────────────────────────────
+    //  Состояние
+    // ──────────────────────────────────────────────
+    private readonly Dictionary<string, IdleAction> actionMap = new();
+    private readonly List<IdleAction> actionList = new();
+
+    private float _globalMultiplier;
+
+    // ── Буферы кадра (нет аллокаций — переиспользуются каждый кадр) ──────────
+
+    // Накопленное производство по ресурсу за кадр
+    // ResourceManager.AddResource вызовется ОДИН РАЗ на ресурс в LateUpdate
+    private readonly Dictionary<ResourceData, float> frameProductionBuffer = new();
+
+    // Завершённые циклы за кадр: (action, totalProduced)
+    // Диспатч событий — после тиков, не во время
+    private readonly List<(IdleAction action, float produced)> frameCycleEvents = new();
+
+    // ──────────────────────────────────────────────
+    //  События
+    // ──────────────────────────────────────────────
+
+    /// <summary>Цикл завершился. Вызывается в LateUpdate, не в Update.</summary>
+    public event Action<IdleAction, float> OnCycleComplete;
+
+    /// <summary>Зарегистрировано новое действие или обновлён уровень.</summary>
+    public event Action<IdleAction> OnActionRegistered;
+
+    /// <summary>Глобальный множитель изменился.</summary>
+    public event Action<float> OnMultiplierChanged;
+
+    // ──────────────────────────────────────────────
+    //  Свойства
+    // ──────────────────────────────────────────────
+    public float GlobalMultiplier
     {
-        return config.GetProductionForLevel(level) * globalMultiplier;
-    }
-
-    public float GetDuration()
-    {
-        return config.GetDurationForLevel(level);
-    }
-
-    public float GetProductionPerSecond(float globalMultiplier)
-    {
-        return GetProductionPerCycle(globalMultiplier) / GetDuration();
-    }
-}
-
-[Serializable]
-public class IdleCategory
-{
-    public string categoryId;
-    public List<IdleAction> actions = new();
-    public Dictionary<string, IdleAction> actionDict = new();
-
-    public IdleCategory(string id)
-    {
-        categoryId = id;
-        actions = new List<IdleAction>();
-        actionDict = new Dictionary<string, IdleAction>();
-    }
-
-    public void AddAction(IdleAction action)
-    {
-        actions.Add(action);
-        actionDict[action.actionId] = action;
-    }
-
-    public void RemoveAction(string actionId)
-    {
-        if (actionDict.TryGetValue(actionId, out var action))
+        get => globalMultiplier;
+        set
         {
-            actions.Remove(action);
-            actionDict.Remove(actionId);
+            globalMultiplier = Mathf.Max(0.01f, value);
+            _globalMultiplier = globalMultiplier;
+            OnMultiplierChanged?.Invoke(_globalMultiplier);
         }
+    }
+
+    public IReadOnlyList<IdleAction> Actions => actionList;
+
+    // ──────────────────────────────────────────────
+    //  Unity Lifecycle
+    // ──────────────────────────────────────────────
+    private void Awake()
+    {
+        if (Instance != null && Instance != this) { Destroy(gameObject); return; }
+        Instance = this;
+        DontDestroyOnLoad(gameObject);
+        _globalMultiplier = globalMultiplier;
+    }
+
+    private void Start()
+    {
+        if (applyOfflineProgress)
+            ProcessOfflineProgress();
+    }
+
+    private void OnApplicationPause(bool pause) { if (pause) SaveLastOnlineTime(); }
+    private void OnApplicationQuit() { SaveLastOnlineTime(); }
+
+    /// <summary>
+    /// Только тики и накопление буферов. Никаких событий, никаких AddResource.
+    /// </summary>
+    private void Update()
+    {
+        float dt = Time.deltaTime;
+
+        for (int i = 0; i < actionList.Count; i++)
+        {
+            var action = actionList[i];
+            if (!action.isActive) continue;
+
+            int cycles = action.Tick(dt, out float produced);
+            if (cycles <= 0) continue;
+
+            float totalProduced = action.GetProductionPerCycle(_globalMultiplier) * cycles;
+
+            // Буферизируем производство — не вызываем AddResource сейчас
+            if (frameProductionBuffer.TryGetValue(action.resource, out float existing))
+                frameProductionBuffer[action.resource] = existing + totalProduced;
+            else
+                frameProductionBuffer[action.resource] = totalProduced;
+
+            // Буферизируем событие завершения цикла
+            frameCycleEvents.Add((action, totalProduced));
+        }
+    }
+
+    /// <summary>
+    /// Диспатч всего накопленного за кадр:
+    /// - AddResource вызывается ОДИН РАЗ на уникальный ресурс
+    /// - OnCycleComplete вызывается для каждого завершённого цикла
+    /// - OnResourceChanged (из ResourceManager) стреляет минимальное число раз
+    /// </summary>
+    private void LateUpdate()
+    {
+        // Один AddResource на ресурс → один OnResourceChanged на ресурс
+        foreach (var kv in frameProductionBuffer)
+            ResourceManager.Instance.AddResource(kv.Key, kv.Value);
+
+        frameProductionBuffer.Clear();
+
+        // Диспатч событий завершения циклов
+        for (int i = 0; i < frameCycleEvents.Count; i++)
+        {
+            var (action, produced) = frameCycleEvents[i];
+            OnCycleComplete?.Invoke(action, produced);
+
+            if (verboseLog)
+                Debug.Log($"[IdleManager] {action.actionId} → +{produced:F2} {action.resource?.name}");
+        }
+
+        frameCycleEvents.Clear();
+    }
+
+    // ──────────────────────────────────────────────
+    //  Public API
+    // ──────────────────────────────────────────────
+
+    public IdleAction RegisterOrUpdateAction(
+        string actionId,
+        ResourceData resource,
+        ProductionConfig config,
+        int level)
+    {
+        if (string.IsNullOrEmpty(actionId))
+        {
+            Debug.LogError("[IdleManager] actionId не может быть пустым");
+            return null;
+        }
+
+        if (!actionMap.TryGetValue(actionId, out var action))
+        {
+            action = new IdleAction { actionId = actionId, timer = 0f };
+            actionMap[actionId] = action;
+            actionList.Add(action);
+        }
+
+        action.resource = resource;
+        action.config = config;
+        action.level = level;
+        action.isActive = level > 0 && config != null && resource != null;
+
+        OnActionRegistered?.Invoke(action);
+
+        if (verboseLog)
+            Debug.Log($"[IdleManager] Registered '{actionId}' lv={level} active={action.isActive}");
+
+        return action;
     }
 
     public IdleAction GetAction(string actionId)
     {
-        actionDict.TryGetValue(actionId, out var action);
+        actionMap.TryGetValue(actionId, out var action);
         return action;
     }
-}
 
-
-public class IdleManager : MonoBehaviour
-{
-    public static IdleManager Instance;
-
-    public float globalProductionMultiplier = 1f;
-    public float tickInterval = 0.1f;
-
-    private Dictionary<string, IdleCategory> categories = new();
-    private List<IdleAction> activeActions = new();
-
-    private float tickTimer;
-
-    // События для UI
-    public event Action<IdleAction> OnActionCycleComplete;
-    public event Action<IdleAction> OnActionPaybackComplete;
-
-    private void Awake()
+    public float GetTotalProductionPerSecond(ResourceData resource)
     {
-        if (Instance == null)
+        float total = 0f;
+        for (int i = 0; i < actionList.Count; i++)
         {
-            Instance = this;
-            DontDestroyOnLoad(gameObject);
+            var a = actionList[i];
+            if (a.isActive && a.resource == resource)
+                total += a.GetProductionPerSecond(_globalMultiplier);
         }
-        else
-        {
-            Destroy(gameObject);
-        }
+        return total;
     }
 
-    private void Update()
-    {
-        tickTimer += Time.deltaTime;
+    public void AddTemporaryBoost(float multiplierAdd, float durationSeconds)
+        => StartCoroutine(TemporaryBoostRoutine(multiplierAdd, durationSeconds));
 
-        if (tickTimer >= tickInterval)
-        {
-            ProcessActions(tickTimer);
-            tickTimer = 0f;
-        }
+    // ──────────────────────────────────────────────
+    //  Offline Progress
+    // ──────────────────────────────────────────────
+    private const string LastOnlineKey = "IdleManager_LastOnlineTime";
+
+    private void SaveLastOnlineTime()
+    {
+        PlayerPrefs.SetString(LastOnlineKey, DateTime.UtcNow.ToBinary().ToString());
+        PlayerPrefs.Save();
     }
 
-    private void ProcessActions(float deltaTime)
+    private void ProcessOfflineProgress()
     {
-        for (int i = activeActions.Count - 1; i >= 0; i--)
+        string saved = PlayerPrefs.GetString(LastOnlineKey, string.Empty);
+        if (string.IsNullOrEmpty(saved)) return;
+        if (!long.TryParse(saved, out long binary)) return;
+
+        float offlineSeconds = (float)(DateTime.UtcNow - DateTime.FromBinary(binary)).TotalSeconds;
+        offlineSeconds = Mathf.Clamp(offlineSeconds, 0f, maxOfflineSeconds);
+        if (offlineSeconds < 1f) return;
+
+        float effective = offlineSeconds * offlineEfficiency;
+
+        // Буферизируем оффлайн так же как онлайн
+        for (int i = 0; i < actionList.Count; i++)
         {
-            var action = activeActions[i];
-            if (action == null) continue;
+            var action = actionList[i];
+            if (!action.isActive) continue;
 
-            float duration = action.GetDuration();
+            float produced = action.SimulateOffline(effective, _globalMultiplier);
+            if (produced <= 0f) continue;
 
-            // Таймер производства
-            action.timer += deltaTime;
-
-
-            // Проверка завершения цикла производства
-            if (action.timer >= duration)
-            {
-                int cycles = Mathf.FloorToInt(action.timer / duration);
-                float production = action.GetProductionPerCycle(globalProductionMultiplier);
-
-                ResourceManager.Instance?.AddResource(action.resource, production * cycles);
-
-                action.timer -= cycles * duration;
-
-                // Вызываем событие для UI
-                OnActionCycleComplete?.Invoke(action);
-            }
-        }
-    }
-
-    #region CATEGORY SYSTEM
-
-    public IdleCategory GetOrCreateCategory(string categoryId)
-    {
-        if (!categories.TryGetValue(categoryId, out var category))
-        {
-            category = new IdleCategory(categoryId);
-            categories.Add(categoryId, category);
+            if (frameProductionBuffer.TryGetValue(action.resource, out float existing))
+                frameProductionBuffer[action.resource] = existing + produced;
+            else
+                frameProductionBuffer[action.resource] = produced;
         }
 
-        return category;
+        // Сбрасываем сразу — Start() вызывается до первого Update/LateUpdate
+        foreach (var kv in frameProductionBuffer)
+            ResourceManager.Instance.AddResource(kv.Key, kv.Value);
+
+        frameProductionBuffer.Clear();
+
+        Debug.Log($"[IdleManager] Оффлайн: {offlineSeconds:F0}с × {offlineEfficiency * 100f:F0}%");
     }
 
-    public IdleAction GetAction(string categoryId, string actionId)
+    // ──────────────────────────────────────────────
+    //  Coroutines
+    // ──────────────────────────────────────────────
+    private System.Collections.IEnumerator TemporaryBoostRoutine(float add, float duration)
     {
-        if (!categories.TryGetValue(categoryId, out var category))
-            return null;
-
-        return category.GetAction(actionId);
+        GlobalMultiplier += add;
+        yield return new WaitForSeconds(duration);
+        GlobalMultiplier -= add;
     }
 
-    #endregion
-
-    #region ACTION CONTROL
-
-    public void RegisterOrUpdateAction(
-        string categoryId,
-        string actionId,
-        ResourceData resource,
-        PurchaseConfig config,
-        int level)
+    // ──────────────────────────────────────────────
+    //  Debug
+    // ──────────────────────────────────────────────
+    [ContextMenu("Log All Actions")]
+    private void LogAllActions()
     {
-        var category = GetOrCreateCategory(categoryId);
-        var action = category.GetAction(actionId);
-
-        if (action == null)
-        {
-            action = new IdleAction
-            {
-                categoryId = categoryId,
-                actionId = actionId,
-                resource = resource,
-                config = config,
-                level = level,
-                timer = 0f,
-            };
-
-            category.AddAction(action);
-
-            if (level > 0)
-                activeActions.Add(action);
-        }
-        else
-        {
-            action.resource = resource;
-            action.config = config;
-            action.level = level;
-
-            if (level > 0 && !activeActions.Contains(action))
-                activeActions.Add(action);
-            else if (level <= 0 && activeActions.Contains(action))
-                activeActions.Remove(action);
-        }
+        Debug.Log($"[IdleManager] Всего: {actionList.Count}");
+        foreach (var a in actionList)
+            Debug.Log($"  [{a.actionId}] lv={a.level} active={a.isActive} " +
+                      $"timer={a.timer:F2}/{a.GetDuration():F2} " +
+                      $"prod/s={a.GetProductionPerSecond(_globalMultiplier):F3}");
     }
-
-    public void UpgradeAction(string categoryId, string actionId, int newLevel)
-    {
-        var action = GetAction(categoryId, actionId);
-        if (action == null) return;
-
-        action.level = newLevel;
-    }
-
-    public void RemoveAction(string categoryId, string actionId)
-    {
-        var action = GetAction(categoryId, actionId);
-        if (action == null) return;
-
-        activeActions.Remove(action);
-
-        if (categories.TryGetValue(categoryId, out var category))
-            category.RemoveAction(actionId);
-    }
-
-    #endregion
-
-    #region ANALYTICS
-
-    public Dictionary<ResourceData, float> GetTotalProductionPerSecond(string categoryId = null)
-    {
-        Dictionary<ResourceData, float> result = new();
-
-        if (string.IsNullOrEmpty(categoryId))
-        {
-            // По всем категориям
-            foreach (var category in categories.Values)
-            {
-                foreach (var action in category.actions)
-                {
-                    float perSecond = action.GetProductionPerSecond(globalProductionMultiplier);
-
-                    if (result.ContainsKey(action.resource))
-                        result[action.resource] += perSecond;
-                    else
-                        result[action.resource] = perSecond;
-                }
-            }
-        }
-        else if (categories.TryGetValue(categoryId, out var category))
-        {
-            foreach (var action in category.actions)
-            {
-                float perSecond = action.GetProductionPerSecond(globalProductionMultiplier);
-
-                if (result.ContainsKey(action.resource))
-                    result[action.resource] += perSecond;
-                else
-                    result[action.resource] = perSecond;
-            }
-        }
-
-        return result;
-    }
-
-    #endregion
-
-    #region OFFLINE EARNINGS
-
-    public void ApplyOfflineEarnings(float offlineTime)
-    {
-        foreach (var action in activeActions)
-        {
-            if (action == null) continue;
-
-            action.timer += offlineTime;
-
-            float duration = action.GetDuration();
-
-            if (action.timer >= duration)
-            {
-                int cycles = Mathf.FloorToInt(action.timer / duration);
-                float production = action.GetProductionPerCycle(globalProductionMultiplier);
-
-                ResourceManager.Instance?.AddResource(action.resource, production * cycles);
-                action.timer -= cycles * duration;
-            }
-        }
-    }
-
-    #endregion
 }

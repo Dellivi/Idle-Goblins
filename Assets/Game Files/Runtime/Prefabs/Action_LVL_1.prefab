@@ -898,7 +898,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   fillBar: {fileID: 9149121825436821813}
-  text_time: {fileID: 8659593580091420603}
+  textTime: {fileID: 8659593580091420603}
 --- !u!1 &5279087896920724088
 GameObject:
   m_ObjectHideFlags: 0
@@ -1297,6 +1297,7 @@ MonoBehaviour:
   textName: {fileID: 2211192263473935355}
   textDescription: {fileID: 0}
   icon: {fileID: 2945858518177520955}
+  config: {fileID: 0}
 --- !u!1 &7786575026063694250
 GameObject:
   m_ObjectHideFlags: 0

@@ -11,7 +11,7 @@ public class MultiCostView : MonoBehaviour
     /// <summary>
     /// Отобразить список стоимостей
     /// </summary>
-    public void ShowCosts(Dictionary<ResourceData, float> costs, bool showRequired)
+    public void ShowCosts(IReadOnlyDictionary<ResourceData, float> costs, bool showRequired)
     {
         Clear();
 

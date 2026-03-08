@@ -1,66 +1,77 @@
-using System.Collections.Generic;
+п»їusing System.Collections.Generic;
 using UnityEngine;
 
 /// <summary>
-/// Универсальный продюсер с поддержкой требований на уровне.
-/// Наследуется от PurchaseSystem.
+/// Р Р°СЃС€РёСЂРµРЅРёРµ PurchaseSystem: РїРѕРґРґРµСЂР¶РёРІР°РµС‚ С‚СЂРµР±РѕРІР°РЅРёСЏ РїРѕ СѓСЂРѕРІРЅСЋ РґР»СЏ СЂР°Р·Р±Р»РѕРєРёСЂРѕРІРєРё
+/// РґРѕРїРѕР»РЅРёС‚РµР»СЊРЅС‹С… СЂРµСЃСѓСЂСЃРЅС‹С… СѓСЃР»РѕРІРёР№ РїРѕРєСѓРїРєРё.
 /// </summary>
 public class ProducerWithRequirements : PurchaseSystem
 {
-    // Приведение к конфигу с требованиями
-    public ProducerWithRequirementsConfig ProducerConfig => Config as ProducerWithRequirementsConfig;
+    private ProducerWithRequirementsConfig RequirementsConfig
+        => Config as ProducerWithRequirementsConfig;
 
-    private void Start()
-    {
-        Setup(Config);
-    }
+    // Р”РІР° РѕС‚РґРµР»СЊРЅС‹С… СЃР»РѕРІР°СЂСЏ:
+    // mergedCosts  вЂ” С‚РѕР»СЊРєРѕ РґР»СЏ С‡С‚РµРЅРёСЏ/РѕС‚РѕР±СЂР°Р¶РµРЅРёСЏ (GetCurrentCosts)
+    // spendBuffer  вЂ” РєРѕРїРёСЏ РґР»СЏ РёС‚РµСЂР°С†РёРё РїСЂРё СЃРїРёСЃР°РЅРёРё (SpendResources)
+    private readonly Dictionary<ResourceData, float> mergedCosts = new();
+    private readonly Dictionary<ResourceData, float> spendBuffer = new();
 
-    /// <summary>
-    /// Расширяем базовый метод GetCurrentCosts добавлением ресурсов из LevelRequirements
-    /// </summary>
-    protected override Dictionary<ResourceData, float> GetCurrentCosts()
+    // в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
+    //  Overrides
+    // в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
+
+    protected override IReadOnlyDictionary<ResourceData, float> GetCurrentCosts()
     {
-        // Берём базовые ресурсы
         var baseCosts = base.GetCurrentCosts();
 
-        if (ProducerConfig == null) return baseCosts;
+        var cfg = RequirementsConfig;
+        if (cfg == null || cfg.levelRequirements == null || cfg.levelRequirements.Count == 0)
+            return baseCosts;
 
-        // Добавляем ресурсы из levelRequirements на текущем уровне
-        foreach (var req in ProducerConfig.levelRequirements)
+        mergedCosts.Clear();
+        foreach (var kv in baseCosts)
+            mergedCosts[kv.Key] = kv.Value;
+
+        foreach (var req in cfg.levelRequirements)
         {
-            if (CurrentLevel < req.unlockLevel)
-            {
-                if (baseCosts.ContainsKey(req.resource))
-                    baseCosts.Remove(req.resource);
-            }
+            if (req.resource == null || CurrentLevel < req.unlockLevel) continue;
+
+            mergedCosts.TryGetValue(req.resource, out float existing);
+            mergedCosts[req.resource] = existing + req.amount;
         }
 
-        return baseCosts;
+        return mergedCosts;
     }
 
-    /// <summary>
-    /// Проверка возможности покупки с учётом всех ресурсов
-    /// </summary>
     protected override bool CanAfford()
     {
-        var costs = GetCurrentCosts();
-        foreach (var kvp in costs)
-        {
-            if (!ResourceManager.Instance.CanAfford(kvp.Key, kvp.Value))
+        foreach (var kv in GetCurrentCosts())
+            if (!ResourceManager.Instance.CanAfford(kv.Key, kv.Value))
                 return false;
-        }
         return true;
     }
 
-    /// <summary>
-    /// Списание всех ресурсов при улучшении
-    /// </summary>
     protected override void SpendResources()
     {
-        var costs = GetCurrentCosts();
-        foreach (var kvp in costs)
+        // РљРѕРїРёСЂСѓРµРј РІ spendBuffer РџР•Р Р•Р” РёС‚РµСЂР°С†РёРµР№.
+        // SpendResource в†’ OnResourceChanged в†’ HandleResourceChanged в†’ GetCurrentCosts()
+        // РїРµСЂРµР·Р°РїРёСЃС‹РІР°РµС‚ mergedCosts вЂ” РЅРѕ РјС‹ РёС‚РµСЂРёСЂСѓРµРј РїРѕ spendBuffer, РЅРµ РїРѕ mergedCosts.
+        spendBuffer.Clear();
+        foreach (var kv in GetCurrentCosts())
+            spendBuffer[kv.Key] = kv.Value;
+
+        // РџСЂРѕРІРµСЂРєР° РїРµСЂРµРґ СЃРїРёСЃР°РЅРёРµРј
+        foreach (var kv in spendBuffer)
         {
-            ResourceManager.Instance.SpendResource(kvp.Key, kvp.Value);
+            if (!ResourceManager.Instance.CanAfford(kv.Key, kv.Value))
+            {
+                Debug.LogWarning($"[ProducerWithRequirements] SpendResources РѕС‚РјРµРЅС‘РЅ: РЅРµРґРѕСЃС‚Р°С‚РѕС‡РЅРѕ {kv.Key?.name}");
+                return;
+            }
         }
+
+        // РС‚РµСЂРёСЂСѓРµРј РїРѕ stale-РєРѕРїРёРё вЂ” СЃРѕР±С‹С‚РёРµ РЅРµ Р»РѕРјР°РµС‚ С†РёРєР»
+        foreach (var kv in spendBuffer)
+            ResourceManager.Instance.SpendResource(kv.Key, kv.Value);
     }
 }

@@ -21,6 +21,8 @@ MonoBehaviour:
     m_FallbackState: 0
     m_WaitForCompletion: 0
     m_LocalVariables: []
+  producer: {fileID: 11400000, guid: 0be890fd9308cdb4baded29c2e9f6ff8, type: 2}
+  productionConfigDataListSO: {fileID: 11400000, guid: 253744ad9474c574ab706fcaa8a33b7a, type: 2}
   references:
     version: 2
     RefIds: []

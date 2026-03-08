@@ -7,5 +7,5 @@ public class LocationLayoutData : ScriptableObject
 {
     public LocalizedString localizedStringGather;
     public List<LocationData> locationDataList;
-    public List<PurchaseConfig> purchaseConfigList;
+    public List<ProductionConfig> purchaseConfigList;
 }

@@ -13,6 +13,7 @@ MonoBehaviour:
   m_Name: NewProducerWithRequirements_Goblin
   m_EditorClassIdentifier: Assembly-CSharp::ProducerWithRequirementsConfig
   categoryId: produce_goblinsId
+  actionId: produce_goblins12
   categoryName:
     m_TableReference:
       m_TableCollectionName: GUID:268335084d471524584dfbecc8f4063f
@@ -32,25 +33,22 @@ MonoBehaviour:
     m_WaitForCompletion: 0
     m_LocalVariables: []
   icon: {fileID: -654422951, guid: be548004c894bd24283f47586280bee6, type: 3}
-  actionId: produce_goblins12
-  costMultiplier: 1.08
-  baseProduction: 1
-  productionMultiplier: 1.07
-  baseDuration: 30
-  minDuration: 5
-  minPaybackTime: 1
-  endgamePaybackFactor: 0
-  durationStepLevels: 10
-  durationDecayPerStep: 1
-  showRequirements: 1
+  productionResource: {fileID: 11400000, guid: 8017b0ac38087dd4b816adb6df18f00b, type: 2}
   costResourceList:
   - resource: {fileID: 11400000, guid: 50fb86d7c83bc754d953ab67351eff9c, type: 2}
-    baseCost: 10
-  productionResource: {fileID: 11400000, guid: 8017b0ac38087dd4b816adb6df18f00b, type: 2}
+    baseCost: 5
+  showRequirements: 1
+  baseProduction: 5
+  productionMultiplier: 1.13
+  costMultiplier: 1.3
+  baseDuration: 30
+  minDuration: 10
+  durationStepLevels: 10
+  durationDecayPerStep: 0.8
   levelRequirements:
-  - resource: {fileID: 11400000, guid: 50fb86d7c83bc754d953ab67351eff9c, type: 2}
-    unlockLevel: 0
-    amountPerLevel: 0
+  - resource: {fileID: 11400000, guid: eeda4bfd6331f604f9eb55517a7618a5, type: 2}
+    unlockLevel: 10
+    amount: 10
   references:
     version: 2
     RefIds: []

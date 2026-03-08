@@ -30,7 +30,6 @@ public class CustomBar : MonoBehaviour
         Current = _current;
         Maximum = _maximum;
 
-
         bar.fillAmount = GetCurrentNormilized();
     }
 

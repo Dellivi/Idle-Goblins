@@ -2,6 +2,10 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
+/// <summary>
+/// Отображает стоимость одного ресурса: иконка + количество.
+/// Подписывается на ResourceManager для актуального цвета.
+/// </summary>
 public class ResourceCostView : MonoBehaviour
 {
     [SerializeField] private Image icon;
@@ -13,35 +17,57 @@ public class ResourceCostView : MonoBehaviour
 
     private ResourceData resource;
     private double requiredAmount;
-    private bool showRequiredResource = false;
+    private bool showRequired;
 
-    public void Setup(ResourceData resource, double requiredAmount, bool showRequired)
+    // ──────────────────────────────────────────────
+    //  Unity Lifecycle
+    // ──────────────────────────────────────────────
+    private void OnEnable()
     {
-        this.resource = resource;
-        this.requiredAmount = requiredAmount;
-        this.showRequiredResource = showRequired;
-
-        if (icon != null)
-            icon.sprite = resource.icon;
-
-        Refresh(showRequiredResource);
+        if (ResourceManager.Instance != null)
+            ResourceManager.Instance.OnResourceChanged += OnResourceChanged;
     }
 
-    public void Refresh(bool showRequired)
+    private void OnDisable()
     {
-        if (resource == null) return;
+        if (ResourceManager.Instance != null)
+            ResourceManager.Instance.OnResourceChanged -= OnResourceChanged;
+    }
+
+    // ──────────────────────────────────────────────
+    //  Public API
+    // ──────────────────────────────────────────────
+    public void Setup(ResourceData res, double required, bool showReq)
+    {
+        resource = res;
+        requiredAmount = required;
+        showRequired = showReq;
+
+        if (icon != null && res != null)
+            icon.sprite = res.icon;
+
+        Refresh();
+    }
+
+    public void Refresh()
+    {
+        if (resource == null || textAmount == null) return;
 
         double current = ResourceManager.Instance.GetResource(resource);
 
-        if (showRequired)
-        {
-            textAmount.text = $"{NumberFormatter.FormatSmart(current)} / {NumberFormatter.FormatSmart(requiredAmount)}";
-        }
-        else
-        {
-            textAmount.text = $"{NumberFormatter.FormatSmart(requiredAmount)}";
-        }
+        textAmount.text = showRequired
+            ? $"{NumberFormatter.FormatSmart(current)} / {NumberFormatter.FormatSmart(requiredAmount)}"
+            : NumberFormatter.FormatSmart(requiredAmount);
 
-            textAmount.color = current >= requiredAmount ? enoughColor : notEnoughColor;
+        textAmount.color = current >= requiredAmount ? enoughColor : notEnoughColor;
+    }
+
+    // ──────────────────────────────────────────────
+    //  Event Handler
+    // ──────────────────────────────────────────────
+    private void OnResourceChanged(ResourceData changed, double newAmount, double delta)
+    {
+        if (changed == resource)
+            Refresh();
     }
 }

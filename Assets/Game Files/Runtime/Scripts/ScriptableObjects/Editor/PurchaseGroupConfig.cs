@@ -7,7 +7,7 @@ public class PurchaseGroupConfig : ScriptableObject
     public string groupName;
 
     [Header("Elements in Group")]
-    public List<PurchaseConfig> elements = new List<PurchaseConfig>();
+    public List<ProductionConfig> elements = new List<ProductionConfig>();
 
     [Header("Global Settings (optional)")]
     public float globalProductionMultiplier = 1f;

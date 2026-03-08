@@ -1,99 +1,79 @@
-using NUnit.Framework;
+﻿// LocationSystem.cs
 using System;
 using UnityEngine;
 
 public class LocationSystem : MonoBehaviour
 {
-    public LocationView locationView;
-    public CustomBar bar;
+    // ─── Events ───────────────────────────────────────────────
+    public event Action<LocationData, int> OnLocationChanged;   // data, chapter
+    public event Action<double, double> OnProgressChanged;   // current, max
+    public event Action<bool> OnNextLocationAvailabilityChanged;
+    public event Action<int> OnLocationIndexRequested;
 
-    private LocationData locationData;
+    // ─── Inspector ────────────────────────────────────────────
+    [SerializeField] private LocationSettingsDataSO locationSettingsData;
+    [SerializeField] private CustomBar bar;
 
-    private int currentChapterIndex = 1;
-    private int currentValue = 0;
-    private int maxValue = 0;
+    // ─── State ────────────────────────────────────────────────
+    public LocationData LocationData { get; private set; }
+    public int CurrentChapter { get; private set; } = 1;
+    public double CurrentValue { get; private set; }
+    public double MaxValue { get; private set; }
 
-    public int CurrentChapterIndex { get => currentChapterIndex; private set => currentChapterIndex = value; }
-    public int CurrentValue { get => currentValue; set => currentValue = value; }
-    public int MaxValue { get => maxValue; set => maxValue = value; }
-    public LocationData LocationData { get => locationData; protected set => locationData = value; }
+    private int _maxLocationLevel;
 
-    private void OnEnable()
-    {
-        ResourceManager.Instance.OnResourceChanged += Instance_OnResourceChanged;
-    }
-
-    private void OnDisable()
-    {
-        ResourceManager.Instance.OnResourceChanged -= Instance_OnResourceChanged;
-    }
-
-    private void Start()
-    {
-        locationView.Setup(this);
-    }
-    
-    public void Initialize(LocationData data)
+    // ─── Public API ───────────────────────────────────────────
+    public void Initialize(LocationData data, int maxLocationIndex)
     {
         LocationData = data;
-        //IncreaseNextChapterResource();
+        _maxLocationLevel = maxLocationIndex;
 
-        currentValue = (int)ResourceManager.Instance.GetResource(LocationData.resource);
-        MaxValue = LocationData.GetMaximumValue(CurrentChapterIndex);
-        locationView.Setup(this);
-        bar.SetBar(CurrentValue, MaxValue);
+        LocationSaveData save = SaveSystem.Load().location;
+        CurrentChapter = save.currentLocationLevel;
 
-        ActivateNextChapterButton();
+        ResetProgress();
     }
 
-    private void Instance_OnResourceChanged(ResourceData data, float newValue, float previousValue)
+    public void AddProgress(double amount)
     {
-        CurrentValue = (int)newValue;
+        CurrentValue = Math.Min(CurrentValue + amount, MaxValue);
 
-        ActivateNextChapterButton();
-
-        locationView.Initialize();
-        bar.AddFillCurrent(newValue - previousValue);
+        bar.AddFillCurrent((float)amount);
+        OnProgressChanged?.Invoke(CurrentValue, MaxValue);
+        OnNextLocationAvailabilityChanged?.Invoke(CanAdvance());
     }
 
-    private void ActivateNextChapterButton()
+    public bool CanAdvance() =>
+        CurrentValue >= MaxValue && CurrentChapter < _maxLocationLevel;
+
+    public void TryNextLocation()
     {
-        if (CurrentValue >= MaxValue && CheckNextChapter())
-        {
-            locationView.BtnNextChapter.gameObject.SetActive(true);
-        }
-        else
-        {
-            locationView.BtnNextChapter.gameObject.SetActive(false);
-        }
+        if (!CanAdvance()) return;
+
+        CurrentChapter++;
+
+        SaveSystem.Load().location.currentLocationLevel = CurrentChapter;
+        SaveSystem.Save();
+
+        ResetProgress();
+
+        OnLocationIndexRequested.Invoke(CurrentChapter);
+        OnLocationChanged?.Invoke(LocationData, CurrentChapter);
     }
 
-    public void NextChapter()
-    {
-        if(LocationData.maxChapterIndex > CurrentChapterIndex)
-        {
-            CurrentChapterIndex++;
-            IncreaseNextChapterResource();
-        }
-    }
-
-    public bool CheckNextChapter()
-    {
-        if (CurrentChapterIndex < LocationData.maxChapterIndex)
-        {
-            return true;
-        }
-        else
-        {
-            return false;
-        }
-    }
-
-    private void IncreaseNextChapterResource()
+    // ─── Private ──────────────────────────────────────────────
+    private void ResetProgress()
     {
         CurrentValue = 0;
-        MaxValue = LocationData.GetMaximumValue(CurrentChapterIndex);
+        MaxValue = CalculateMaxValue();
 
         bar.SetBar(CurrentValue, MaxValue);
+        OnProgressChanged?.Invoke(CurrentValue, MaxValue);
+        OnNextLocationAvailabilityChanged?.Invoke(CanAdvance());
     }
+
+    private double CalculateMaxValue() =>
+        locationSettingsData.baseAmount *
+        Mathf.Pow(locationSettingsData.baseMultiplier,
+                  CurrentChapter);
 }
