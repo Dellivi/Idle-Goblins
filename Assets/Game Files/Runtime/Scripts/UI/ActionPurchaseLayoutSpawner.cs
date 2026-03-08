@@ -1,7 +1,11 @@
-﻿using DG.Tweening;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using UnityEngine;
 
+/// <summary>
+/// Спаунер панелей покупки с объектным пулом.
+/// Порядок объектов в иерархии гарантируется через SetSiblingIndex
+/// после каждого спавна — без переинициализации или пересоздания.
+/// </summary>
 public class ActionPurchaseLayoutSpawner : MonoBehaviour
 {
     [SerializeField] private GameObject actionPrefab;
@@ -9,38 +13,42 @@ public class ActionPurchaseLayoutSpawner : MonoBehaviour
     [Space]
     [SerializeField] private List<ProductionConfig> productionConfigList;
 
-    private Stack<PurchaseSystem> pool = new();
-    private List<PurchaseSystem> activeObjects = new();
-    private Sequence spawnSequence;
+    // Пул хранит объекты в порядке "LIFO не важен" — порядок задаётся sibling index
+    private readonly Stack<PurchaseSystem> pool = new();
+    private readonly List<PurchaseSystem> activeObjects = new();
 
-    #region Initialization
-
+    // ──────────────────────────────────────────────
+    //  Initialization
+    // ──────────────────────────────────────────────
     private void Awake()
     {
         for (int i = 0; i < initialPoolSize; i++)
-        {
             pool.Push(CreateNew());
-        }
+    }
+
+    private void Start()
+    {
+        if (productionConfigList is { Count: > 0 })
+            Spawn(productionConfigList);
     }
 
     private PurchaseSystem CreateNew()
     {
-        var obj = Instantiate(actionPrefab, transform)
-            .GetComponent<PurchaseSystem>();
+        var obj = Instantiate(actionPrefab, transform).GetComponent<PurchaseSystem>();
 
-        var canvasGroup = obj.GetComponent<CanvasGroup>();
-        if (canvasGroup == null)
-            canvasGroup = obj.gameObject.AddComponent<CanvasGroup>();
+        if (obj == null)
+        {
+            Debug.LogError("[ActionPurchaseLayoutSpawner] actionPrefab не содержит PurchaseSystem!", this);
+            return null;
+        }
 
         obj.gameObject.SetActive(false);
-
         return obj;
     }
 
-    #endregion
-
-    #region Pool
-
+    // ──────────────────────────────────────────────
+    //  Pool
+    // ──────────────────────────────────────────────
     private PurchaseSystem GetFromPool()
     {
         if (pool.Count == 0)
@@ -53,53 +61,56 @@ public class ActionPurchaseLayoutSpawner : MonoBehaviour
 
     private void ReturnToPool(PurchaseSystem obj)
     {
-        var canvasGroup = obj.GetComponent<CanvasGroup>();
-
-        canvasGroup.DOKill();
-        canvasGroup.alpha = 1f;
-
         obj.gameObject.SetActive(false);
         pool.Push(obj);
     }
 
-    #endregion
+    // ──────────────────────────────────────────────
+    //  Public API
+    // ──────────────────────────────────────────────
 
-    #region Public API
-
+    /// <summary>
+    /// Спаунит панели в том порядке, в каком переданы configs.
+    /// Порядок в иерархии гарантирован через SetSiblingIndex.
+    /// </summary>
     public void Spawn(List<ProductionConfig> configs)
     {
-        // Убираем анимации, просто включаем объекты
-        foreach (var config in configs)
+        if (configs == null || configs.Count == 0) return;
+
+        for (int i = 0; i < configs.Count; i++)
         {
+            var config = configs[i];
+            if (config == null)
+            {
+                Debug.LogWarning($"[ActionPurchaseLayoutSpawner] null config на индексе {i}, пропускаем");
+                continue;
+            }
+
             var purchase = GetFromPool();
-
-            // Сбрасываем состояние CanvasGroup в дефолт (на случай, если где-то была анимация)
-            var canvasGroup = purchase.GetComponent<CanvasGroup>();
-            canvasGroup.alpha = 1f;
-            canvasGroup.interactable = true;
-            canvasGroup.blocksRaycasts = true;
-
             purchase.Setup(config);
+
+            // Гарантируем порядок в иерархии — Layout Group учитывает sibling index
+            purchase.transform.SetSiblingIndex(i);
+
             activeObjects.Add(purchase);
         }
     }
 
+    /// <summary>Убрать все активные панели в пул.</summary>
     public void Clear()
     {
-        spawnSequence?.Kill();
-
-        foreach (var obj in activeObjects)
-        {
-            ReturnToPool(obj);
-        }
+        for (int i = activeObjects.Count - 1; i >= 0; i--)
+            ReturnToPool(activeObjects[i]);
 
         activeObjects.Clear();
     }
 
-    private void OnDisable()
+    /// <summary>Переспаунить с новым списком конфигов.</summary>
+    public void Respawn(List<ProductionConfig> configs)
     {
         Clear();
+        Spawn(configs);
     }
 
-    #endregion
+    private void OnDisable() => Clear();
 }
